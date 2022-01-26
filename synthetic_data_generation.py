@@ -8,6 +8,43 @@ TO DO: CONSIDER OOPIFYING EVERYTHING / DATA PROPERTIES AT LEAST.
 import numpy as np
 import matplotlib.pyplot as plt
 
+def load_datasets(file_name):
+    
+    datasets = {}
+    
+    with open(file_name, 'r') as defines:
+    
+        for line in defines:
+                #Ignore comments in the text file
+                if line[0] == "#" or line == '\n' or line == '':
+                    continue
+                #Remove the new line command
+                line = line[:-1]
+                #Split up all properties that are used to define the dataset
+                properties = line.split(' ; ')
+                #First is the name
+                name = properties[0]
+                #Then the input dimension
+                dimensions = int(properties[1])
+                #Iterate over all the classes that we have defined members for
+                members = np.array([int(number) for number in properties[2].split('/')])
+                #Split up the coordinates for the different classes
+                center_coordinates = properties[3].split('/') ; coordinates = []
+                #Turn the coordinates from a list of strings to a list of lists of numbers
+                for location in center_coordinates:
+                    coordinates.append([float(number) for number in location[1:-1].split(',')])
+                #Make the list an array
+                centers = np.array(coordinates)
+                #Do the same with the scales as the coordinates
+                scale_values = properties[4].split('/') ; sizes = []
+                for size in scale_values:
+                    sizes.append([float(number) for number in size[1:-1].split(',')])
+                scales = np.array(sizes)
+                #Add the dataset to the dictionary
+                datasets[name] = [dimensions, members, centers, scales]
+    
+    return datasets
+
 
 def generate_class_data(num_dims, num_mems, centers, scales, val=0):
     """Generates data for a specified-dimensional multi-class classification
@@ -79,30 +116,12 @@ def standard(x):
 seed = -1 # Seed should be an integer
 rng = np.random.default_rng(seed) if seed != -1 else np.random.default_rng()
 
-
-# Declare data properties [#dimensions, #members, centers, sizes]
-
-# Basic circle example
-circle = [2, np.array([500]), np.array([0, 0]), np.array([5, 5])]
-
-#Circle intercept example
-circle_intercept = [2, np.array([400, 400]), np.array([[0, 0], [5, 0]]), np.array([[2, 2], [2, 2]])]
-
-# Circle in a circle example
-circle_ception = [2, np.array([300, 100]), np.array([[0, 0], [0, 1]]), np.array([[3, 3], [1, 1]])]
-
-# Three ellipses example
-ellipses = [2, np.array([300, 300, 300]), np.array([[0, 0], [5, 0], [2.5, 2.5]]), np.array([[3, 1], [1, 3], [3, 1]])]
-
-# Five dimensional headache example
-headache = [5, np.array([100, 100]), np.array([[0, 0, 0, 0, 0], [3, 0, 0, 0, 0]]), np.array([[2, 2, 2, 2, 2], [1, 1, 1, 1, 1]])]
-
-#Circle and Ellipse
-ce = [2, np.array([500,50,100]), np.array([[0, 0], [8, 0], [-7, 0]]), np.array([[3, 3], [5, 0.5], [4, 0.8]])]
+#Load datasets from file
+datasets = load_datasets('datasets.txt')
 
 # Which dataset to test
 
-chosen_dataset = ce
+chosen_dataset = datasets['smiley']
 
 # Synthesise data
 x_trn, d_trn = generate_class_data(*chosen_dataset)
