@@ -36,7 +36,7 @@ def generate_class_data(num_dims, num_mems, centers, scales, val=0):
         The one-hot encoded classifications for each data-point.
     """
     if val:
-        num_mems*val
+        num_mems*=val
     
     num_classes = len(num_mems)
       
