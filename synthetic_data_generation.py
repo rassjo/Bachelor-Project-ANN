@@ -1,6 +1,8 @@
 """Synthetic Data Generator
 
 This script contains various procedures for data generation.
+
+TO DO: CONSIDER OOPIFYING EVERYTHING / DATA PROPERTIES AT LEAST.
 """
 
 import numpy as np
@@ -8,7 +10,8 @@ import matplotlib.pyplot as plt
 
 
 def classification(num_dims, num_mems, centers, scales):
-    """Generates data for a specified-dimensional multi-class classification problem from parameter-specified normal distributions.
+    """Generates data for a specified-dimensional multi-class classification
+    problem from parameter-specified normal distributions.
 
     Parameters
     ----------
@@ -31,13 +34,14 @@ def classification(num_dims, num_mems, centers, scales):
     num_classes = len(num_mems)
       
     x = np.empty(shape=(int(np.sum(num_mems)), num_dims), dtype=np.float32)
-    d = np.zeros(shape=(int(np.sum(num_mems)), num_classes), dtype=int) #one-hot encoding
+    d = np.zeros(shape=(int(np.sum(num_mems)), num_classes), dtype=int)
         
     sum_mems_0 = 0
     sum_mems_1 = 0
     for i in range(0, num_classes):
         sum_mems_1 += num_mems[i]       
-        x[sum_mems_0:sum_mems_1, :] = rng.normal(centers[i], scales[i], size=(num_mems[i], num_dims))
+        x[sum_mems_0:sum_mems_1, :] = rng.normal(centers[i], scales[i],
+                                                 size=(num_mems[i], num_dims))
         d[sum_mems_0:sum_mems_1, i] = 1          
         sum_mems_0 = sum_mems_1
     
@@ -46,7 +50,8 @@ def classification(num_dims, num_mems, centers, scales):
 
 
 def standard(x):
-    """Calculates the means and the standard-deviations of the provided data-set idendently over each axis.
+    """Calculates the means and the standard-deviations of the provided
+    data-set independently over each axis.
     
     Parameters
     ----------
@@ -58,15 +63,18 @@ def standard(x):
     numpy array of floats
         The means of the data-set, calculated independently over each axis.
     numpy array of floats
-        The standard-deviations of the data-set, calculated independently over each axis.
+        The standard-deviations of the data-set, calculated independently
+        over each axis.
     """
     return np.mean(x, axis=0), np.std(x, axis=0)
 
 
 
 # Set seed
-seed = 5 # Seed should be an integer >= -1
-rng = np.random.default_rng(seed) if seed != -1 else np.random.default_rng() # Seed == -1 for random rng, seed >= 0 for fixed rng  
+# Seed == -1 for random rng, seed >= 0 for fixed rng
+seed = -1 # Seed should be an integer
+rng = np.random.default_rng(seed) if seed != -1 else np.random.default_rng()
+
      
 
 # Declare data properties
@@ -115,16 +123,21 @@ if (num_dims == 2): # Only plot 2D data
     num_classes = len(num_mems)
     sum_mems_0 = 0
     sum_mems_1 = 0
-    for i in range(0, num_classes): # Plot different categories seperately, such that they are coloured seperately
+    for i in range(0, num_classes): # Plot different categories seperately,
+                                    # such that they are coloured seperately
         sum_mems_1 += num_mems[i]     
-        plt.scatter(x_trn[sum_mems_0:sum_mems_1, 0], x_trn[sum_mems_0:sum_mems_1, 1], label = str(d_trn[sum_mems_0]))
-        plt.gca().set_aspect('equal', adjustable='box') # Ensure x and y axis scale equally   
+        plt.scatter(x_trn[sum_mems_0:sum_mems_1, 0],
+                    x_trn[sum_mems_0:sum_mems_1, 1],
+                    label = str(d_trn[sum_mems_0]))
+        plt.gca().set_aspect('equal', adjustable='box') # Ensure x and y axis
+                                                        # scale equally   
         sum_mems_0 = sum_mems_1
         
     plt.legend()
           
         
 # Standardise synthesised data (to ready for input into ANN)
+# Adjusting inputs to have unit-variance and zero mean.
 mean_trn, std_trn = standard(x_trn)
-x_trn = (x_trn - mean_trn) / std_trn # Adjusting inputs to have unit-variance (std = 1) and zero mean (mu = 0)
+x_trn = (x_trn - mean_trn) / std_trn 
 x_val = (x_val - mean_trn) / std_trn
