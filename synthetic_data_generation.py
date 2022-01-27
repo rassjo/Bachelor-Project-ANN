@@ -46,7 +46,7 @@ def load_datasets(file_name):
     return datasets
 
 
-def generate_class_data(num_dims, num_mems, centers, scales, val=0):
+def generate_class_data(num_dims, mems, centers, scales, val=1):
     """Generates data for a specified-dimensional multi-class classification
     problem from parameter-specified normal distributions.
 
@@ -72,8 +72,11 @@ def generate_class_data(num_dims, num_mems, centers, scales, val=0):
     numpy array of ints
         The one-hot encoded classifications for each data-point.
     """
-    if val:
-        num_mems*=val
+    num_mems = mems*val
+    #We have to define a new variable explicitly, otherwise if we just
+    #modify the argument that we sent to the function we actually modify
+    #the original array and the changes remain after we leave the function
+    #because arrays are fucking stupid.
     
     num_classes = len(num_mems)
       
@@ -120,7 +123,6 @@ rng = np.random.default_rng(seed) if seed != -1 else np.random.default_rng()
 datasets = load_datasets('datasets.txt')
 
 # Which dataset to test
-
 chosen_dataset = datasets['smiley']
 
 # Synthesise data
