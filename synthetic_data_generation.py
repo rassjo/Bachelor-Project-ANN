@@ -81,15 +81,20 @@ def generate_class_data(num_dims, mems, centers, scales, val=1):
     num_classes = len(num_mems)
       
     x = np.empty(shape=(int(np.sum(num_mems)), num_dims), dtype=np.float32)
-    d = np.zeros(shape=(int(np.sum(num_mems)), num_classes), dtype=int)
-        
+    d = np.zeros(shape=(int(np.sum(num_mems)), ), dtype=int)
+    if (num_classes > 2):
+        d = np.zeros(shape=(int(np.sum(num_mems)), num_classes), dtype=int)
+   
     sum_mems_0 = 0
     sum_mems_1 = 0
     for i in range(0, num_classes):
         sum_mems_1 += num_mems[i]       
         x[sum_mems_0:sum_mems_1, :] = rng.normal(centers[i], scales[i],
                                                  size=(num_mems[i], num_dims))
-        d[sum_mems_0:sum_mems_1, i] = 1          
+        if (num_classes > 2):
+            d[sum_mems_0:sum_mems_1, i] = 1   
+        else:
+            d[sum_mems_0:sum_mems_1] = i
         sum_mems_0 = sum_mems_1
     
     return x, d
