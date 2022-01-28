@@ -62,7 +62,7 @@ ann_rng = generate_rng(ann_seed)
 
 #-----------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('smiley', try_plot=True)    
+trn, val = generate_datasets('circle_intercept', try_plot=True)    
 x_trn, d_trn = trn[0], trn[1]
 x_val, d_val = val[0], val[1] 
 
