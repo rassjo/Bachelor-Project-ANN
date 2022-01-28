@@ -36,6 +36,13 @@ class Layer_Dense:
         #it will be a 2D array which causes problems when we want to check
         #the input dimension to set up the next layer.
 
+def Error(finaloutput,targets):
+    y = finaloutput
+    d = targets
+    N = len(targets)
+    E= -1/N*(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))
+    return E
+
 #------------------------------------------------------------------------------
 #Activation function definitions:
 
@@ -50,6 +57,18 @@ ReLU = lambda y: max(0.0,y)
 #the closest integer as well!
 
 act_ReLU = np.vectorize(ReLU)
+
+logistic = lambda y: 1/(1+np.e**(-y))
+
+act_logistic = np.vectorize(logistic)
+
+d_logistic = lambda y: y*(1.0 - y)
+
+tanh = lambda y: np.tanh(y)
+
+act_tanh = np.vectorize(tanh)
+
+d_tanh = lambda y: 1.0 - y**2
 
 #------------------------------------------------------------------------------
 
