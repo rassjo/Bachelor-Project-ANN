@@ -199,8 +199,3 @@ def plot_data(x, d):
     plt.gca().set_aspect('equal', adjustable='box') # Ensure x and y axis
                                                         # scale equally   
     plt.legend()
-  
-    
-trn, val = generate_datasets('smiley', val_mul = 0, try_plot=True)        
-print(trn)
-print(val)
