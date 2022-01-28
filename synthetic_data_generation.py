@@ -2,14 +2,14 @@
 
 This script contains various procedures for data generation.
 
-TO DO: CONSIDER OOPIFYING EVERYTHING / DATA PROPERTIES AT LEAST.
+TO DO: WHAT IF val_mul = 0 ? then
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-def load_datasets(file_name):
-    
+
+def load_presets(file_name): 
     datasets = {}
     
     with open(file_name, 'r') as defines:
@@ -46,7 +46,8 @@ def load_datasets(file_name):
     return datasets
 
 
-def generate_class_data(num_dims, mems, centers, scales, val=1):
+def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
+                        rng=np.random.default_rng()):
     """Generates data for a specified-dimensional multi-class classification
     problem from parameter-specified normal distributions.
 
@@ -72,7 +73,10 @@ def generate_class_data(num_dims, mems, centers, scales, val=1):
     numpy array of ints
         The one-hot encoded classifications for each data-point.
     """
-    num_mems = mems*val
+    if (val_mul == 0):
+        return (None, None)
+    
+    num_mems = mems*val_mul
     #We have to define a new variable explicitly, otherwise if we just
     #modify the argument that we sent to the function we actually modify
     #the original array and the changes remain after we leave the function
@@ -119,46 +123,84 @@ def standard(x):
     return np.mean(x, axis=0), np.std(x, axis=0)
 
 
-# Set seed
-# Seed == -1 for random rng, seed >= 0 for fixed rng
-seed = -1 # Seed should be an integer
-rng = np.random.default_rng(seed) if seed != -1 else np.random.default_rng()
+def standardise(x_trn, x_val=None):
+    # Standardise synthesised data (to ready for input into ANN)
+    # Adjusting inputs to have unit-variance and zero mean.
+    mean_trn, std_trn = standard(x_trn)
+    x_trn = (x_trn - mean_trn) / std_trn 
+    if (isinstance(x_val, type(None))):
+        return(x_trn, None)
+    x_val = (x_val - mean_trn) / std_trn
+    return(x_trn, x_val)
+    
 
-#Load datasets from file
-datasets = load_datasets('datasets.txt')
 
-# Which dataset to test
-chosen_dataset = datasets['smiley']
+def generate_datasets(preset_name, presets_file='data_presets.txt',
+                      val_mul = 1, try_plot = False,
+                      rng=np.random.default_rng()):
+    #Load presets from file
+    presets = load_presets(presets_file)
 
-# Synthesise data
-x_trn, d_trn = generate_class_data(*chosen_dataset)
-x_val, d_val = generate_class_data(*chosen_dataset, val = 10)
+    # Which preset to generate
+    chosen_preset = presets[preset_name]
 
-num_dims = chosen_dataset[0]
-num_mems = chosen_dataset[1]
+    # Synthesise data
+    x_trn, d_trn = generate_class_data(*chosen_preset)
+    x_val, d_val = generate_class_data(*chosen_preset, val_mul)
 
-# Plot training data
-if (num_dims == 2): # Only plot 2D data
+    # Plot data
+    if (try_plot):
+        plot_data(x_trn, d_trn)
+
+    # Standardise data
+    x_trn, x_val = standardise(x_trn, x_val)   
+    
+    trn = (x_trn, d_trn)
+    val = (x_val, d_val)
+    
+    return (trn, val)
+
+def plot_data(x, d):
+    # plot data
+    
+    x_list = x.tolist()
+    d_list = d.tolist()
+    
+    dx = zip(d_list, x_list)
+
+    dx_list = list(dx)
+    dx_list = list(list(dx) for dx in dx_list) # convert tuples to lists
+    
+    
+    sorted_list = sorted(dx_list, reverse=True, key=lambda item: (item[0])) # sort list
+    
+    
+    indices = [index for index, element in enumerate(sorted_list) if element[0] != sorted_list[index-1][0]] # get indices for start and end of each unique class
+    indices.append(len(sorted_list))
+    
+
+    sorted_dx = sorted_list
+
+    # convert list to numpy array
+    sorted_dx = np.asarray(sorted_dx, dtype=object)
+    for i in range(0, len(sorted_dx)):
+        sorted_dx[i] = np.asarray(sorted_dx[i])
+        for j in range(0, 2):
+            sorted_dx[i][j] = np.asarray(sorted_dx[i][j])
+        
     plt.figure(0)
     plt.title('Synthetic training data')
-
-    num_classes = len(num_mems)
-    sum_mems_0 = 0
-    sum_mems_1 = 0
-    for i in range(0, num_classes): # Plot different categories seperately,
-                                    # such that they are coloured seperately
-        sum_mems_1 += num_mems[i]     
-        plt.scatter(x_trn[sum_mems_0:sum_mems_1, 0],
-                    x_trn[sum_mems_0:sum_mems_1, 1],
-                    label = str(d_trn[sum_mems_0]))
-        plt.gca().set_aspect('equal', adjustable='box') # Ensure x and y axis
+    num_classes = len(indices)-1       
+    for i in range(0, num_classes):
+        #print(sorted_dx[indices[i]:indices[i+1]-1, 1])
+        x = [xy[0] for xy in sorted_dx[indices[i]:indices[i+1]-1, 1]]
+        y = [xy[1] for xy in sorted_dx[indices[i]:indices[i+1]-1, 1]]
+        plt.scatter(x, y, label = str(sorted_dx[indices[i], 0]))     
+    plt.gca().set_aspect('equal', adjustable='box') # Ensure x and y axis
                                                         # scale equally   
-        sum_mems_0 = sum_mems_1
-        
     plt.legend()
-          
-# Standardise synthesised data (to ready for input into ANN)
-# Adjusting inputs to have unit-variance and zero mean.
-mean_trn, std_trn = standard(x_trn)
-x_trn = (x_trn - mean_trn) / std_trn 
-x_val = (x_val - mean_trn) / std_trn
+  
+    
+trn, val = generate_datasets('smiley', val_mul = 0, try_plot=True)        
+print(trn)
+print(val)
