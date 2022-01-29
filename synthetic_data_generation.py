@@ -2,7 +2,7 @@
 
 This script contains various procedures for data generation.
 
-TO DO: WHAT IF val_mul = 0 ? then
+TO DO: ADD 'help', THAT DISPLAYS THE AVAILABLE PRESETS
 """
 
 import numpy as np
@@ -172,12 +172,16 @@ def plot_data(x, d):
     dx_list = list(list(dx) for dx in dx_list) # convert tuples to lists
     
     
-    sorted_list = sorted(dx_list, reverse=True, key=lambda item: (item[0])) # sort list
+    sorted_list = sorted(dx_list, reverse=False, key=lambda item: (item[0])) # sort list
+    # want reverse=False for binary classification, rever=True for multi-classification (just aesthetic)
     
-    
+
     indices = [index for index, element in enumerate(sorted_list) if element[0] != sorted_list[index-1][0]] # get indices for start and end of each unique class
+    if 0 not in indices:
+        indices.insert(0, 0) # for binary classification plots
     indices.append(len(sorted_list))
-    
+
+    print(indices)        
 
     sorted_dx = sorted_list
 
@@ -187,12 +191,12 @@ def plot_data(x, d):
         sorted_dx[i] = np.asarray(sorted_dx[i])
         for j in range(0, 2):
             sorted_dx[i][j] = np.asarray(sorted_dx[i][j])
-        
+    
     plt.figure(0)
     plt.title('Synthetic training data')
-    num_classes = len(indices)-1       
+    print(indices)
+    num_classes = len(indices)-1
     for i in range(0, num_classes):
-        #print(sorted_dx[indices[i]:indices[i+1]-1, 1])
         x = [xy[0] for xy in sorted_dx[indices[i]:indices[i+1]-1, 1]]
         y = [xy[1] for xy in sorted_dx[indices[i]:indices[i+1]-1, 1]]
         plt.scatter(x, y, label = str(sorted_dx[indices[i], 0]))     
