@@ -48,7 +48,8 @@ def load_presets(file_name):
 
 def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
                         rng=np.random.default_rng()):
-    """Generates data for a specified-dimensional multi-class classification
+    """
+    Generates data for a specified-dimensional multi-class classification
     problem from parameter-specified normal distributions.
 
     Parameters
@@ -70,8 +71,10 @@ def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
     -------
     nested numpy array of floats
         The generated numpy array of I-dimensional co-ordinates.
-    numpy array of ints
-        The one-hot encoded classifications for each data-point.
+    numpy array of ints or nested numpy array of ints
+        The classifications for each data-point. For binary classifications,
+        each target is an integer 0 or 1. For multi-class classification,
+        the target uses one-hot encoding.
     """
     if (val_mul == 0):
         return (None, None)
@@ -104,7 +107,8 @@ def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
     return x, d
 
 def standard(x):
-    """Calculates the means and the standard-deviations of the provided
+    """
+    Calculates the means and the standard-deviations of the provided
     data-set independently over each axis.
     
     Parameters
@@ -150,7 +154,8 @@ def generate_datasets(preset_name, presets_file='data_presets.txt',
 
     # Plot data
     if (try_plot):
-        plot_data(x_trn, d_trn)
+        plot_data(x_trn, d_trn, 'training')
+        plot_data(x_val, d_val, 'validation')
 
     # Standardise data
     x_trn, x_val = standardise(x_trn, x_val)   
@@ -160,46 +165,62 @@ def generate_datasets(preset_name, presets_file='data_presets.txt',
     
     return (trn, val)
 
-def plot_data(x, d):
-    # plot data
-    
-    x_list = x.tolist()
-    d_list = d.tolist()
-    
-    dx = zip(d_list, x_list)
+def plot_data(x, d, data_name = 'generic'):
+    """
+    Plot 2D input data x, distinguished into the corresponding unique targets d.
 
-    dx_list = list(dx)
-    dx_list = list(list(dx) for dx in dx_list) # convert tuples to lists
-    
-    
-    sorted_list = sorted(dx_list, reverse=False, key=lambda item: (item[0])) # sort list
-    # want reverse=False for binary classification, rever=True for multi-classification (just aesthetic)
-    
+    Parameters
+    ----------
+    x : nested numpy array of floats
+        A numpy array of I-dimensional co-ordinates.
+    d : numpy array of ints or nested numpy array of ints
+        The classifications for each data-point. For binary classifications,
+        each target is an integer 0 or 1. For multi-class classification,
+        the target uses one-hot encoding.   
+    data_name : string
+        The name of the data to be used in the plot title.
+        
+    Returns
+    -------
+    None.
+    """
+    if (isinstance(x, type(None))) or (isinstance(d, type(None))):
+        return None
 
-    indices = [index for index, element in enumerate(sorted_list) if element[0] != sorted_list[index-1][0]] # get indices for start and end of each unique class
+    # Convert numpy arrays to lists (for zipping)
+    # Zip the lists, so each co-ordinate is paired to the corresponding target
+    # Convert tuples to lists (for sorting)
+    dx = zip(d.tolist(), x.tolist())
+    dx = list(list(pair) for pair in dx)
+    
+    # Sort the pairs by the target value
+    # Ideally want reverse=False for binary classification and reverse=True 
+    # for multi-classification (just aesthetic)
+    dx = sorted(dx, reverse=False, key=lambda item: (item[0]))
+
+    # Get the indices that mark the transitions between each unique class
+    indices = [index for index, element in enumerate(dx) if element[0] != dx[index-1][0]]
     if 0 not in indices:
-        indices.insert(0, 0) # for binary classification plots
-    indices.append(len(sorted_list))
+        indices.insert(0, 0) # (Only necessary for binary classification)
+    indices.append(len(dx))     
 
-    print(indices)        
-
-    sorted_dx = sorted_list
-
-    # convert list to numpy array
-    sorted_dx = np.asarray(sorted_dx, dtype=object)
-    for i in range(0, len(sorted_dx)):
-        sorted_dx[i] = np.asarray(sorted_dx[i])
+    # Convert (back) to numpy arrays, for easy indexing when plotting
+    dx = np.asarray(dx, dtype=object)
+    for i in range(0, len(dx)):
+        dx[i] = np.asarray(dx[i])
         for j in range(0, 2):
-            sorted_dx[i][j] = np.asarray(sorted_dx[i][j])
+            dx[i][j] = np.asarray(dx[i][j])
     
-    plt.figure(0)
-    plt.title('Synthetic training data')
-    print(indices)
+    # Plot each class seperately, for automatic labelling and colouring
+    plt.figure()  
+    plt.title('Synthetic ' + data_name + ' data')
     num_classes = len(indices)-1
     for i in range(0, num_classes):
-        x = [xy[0] for xy in sorted_dx[indices[i]:indices[i+1]-1, 1]]
-        y = [xy[1] for xy in sorted_dx[indices[i]:indices[i+1]-1, 1]]
-        plt.scatter(x, y, label = str(sorted_dx[indices[i], 0]))     
-    plt.gca().set_aspect('equal', adjustable='box') # Ensure x and y axis
-                                                        # scale equally   
+        x = [xy[0] for xy in dx[indices[i]:indices[i+1]-1, 1]]
+        y = [xy[1] for xy in dx[indices[i]:indices[i+1]-1, 1]]
+        plt.scatter(x, y, label = str(dx[indices[i], 0]))  
+    
+    # Make x and y axis scale equally
+    plt.gca().set_aspect('equal', adjustable='box')
+                                                   
     plt.legend()
