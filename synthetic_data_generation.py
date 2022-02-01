@@ -1,15 +1,28 @@
 """Synthetic Data Generator
 
 This script contains various procedures for data generation.
+Call the generate_datasets function with the appropriate parameters to
+quickly get up and running.
 
 TO DO: ADD 'help', THAT DISPLAYS THE AVAILABLE PRESETS
 """
-
 import numpy as np
 import matplotlib.pyplot as plt
 
+def load_presets(file_name):
+    """
+    Loads the presets from the specified preset file.
 
-def load_presets(file_name): 
+    Parameters
+    ----------
+    file_name : str
+        Path to the text file to loads the presets from.
+
+    Returns
+    -------
+    ...
+        The properties defining each available preset.
+    """
     datasets = {}
     
     with open(file_name, 'r') as defines:
@@ -62,10 +75,12 @@ def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
         The num_dims-dimensional displacements of each class.
     scales : nested numpy array of floats
         The num_dims-dimensional standard-deviation (scale) of each class.
-    val: int
-        The relative size of the validation data set, use only when creating
-        a valdiation data set from the same distribution to go with the
-        training data
+    val_mul : int
+        The relative size (in members) of the validation data-set, with respect
+        to the (training data-set). Set val_mul = 0 for no validation data-set.
+    rng : numpy generator
+        The random number generator. Default is random unless a rng with a fixed
+        seed is provided.
 
     Returns
     -------
@@ -79,11 +94,11 @@ def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
     if (val_mul == 0):
         return (None, None)
     
-    num_mems = mems*val_mul
     #We have to define a new variable explicitly, otherwise if we just
     #modify the argument that we sent to the function we actually modify
     #the original array and the changes remain after we leave the function
     #because arrays are fucking stupid.
+    num_mems = mems*val_mul
     
     num_classes = len(num_mems)
       
@@ -114,7 +129,7 @@ def standard(x):
     Parameters
     ----------
     x : nested numpy array of floats
-        The data-set, a numpy array of I-dimensional co-ordinates.
+        The data-set, a numpy array of arbitrary-dimensional co-ordinates.
 
     Returns
     -------
@@ -128,24 +143,70 @@ def standard(x):
 
 
 def standardise(x_trn, x_val=None):
-    # Standardise synthesised data (to ready for input into ANN)
-    # Adjusting inputs to have unit-variance and zero mean.
+    """
+    Standardises x_trn to unit-variance and zero-mean and apply the same
+    transformation to x_val (if provided).
+    
+    Parameters
+    ----------
+    x_trn : nested numpy array of floats
+        The training data-set of arbitrary-dimensional co-ordinates.
+    x_val : nested numpy array of floats
+        The validation data-set of arbitrary-dimensional co-ordinates.
+
+    Returns
+    -------
+    nested numpy array of floats
+        The standardised training data-set.
+    nested numpy array of floats
+        The transformed validation data-set (note: this will not
+        necessarily have unit-variance and zero-mean).
+    """
     mean_trn, std_trn = standard(x_trn)
     x_trn = (x_trn - mean_trn) / std_trn 
     if (isinstance(x_val, type(None))):
         return(x_trn, None)
     x_val = (x_val - mean_trn) / std_trn
-    return(x_trn, x_val)
+    return x_trn, x_val
     
 
 
 def generate_datasets(preset_name, presets_file='data_presets.txt',
                       val_mul = 1, try_plot = False,
                       rng=np.random.default_rng()):
-    #Load presets from file
-    presets = load_presets(presets_file)
+    """
+    Generates classification data from normal distributions defined according
+    to the specified preset.
 
-    # Which preset to generate
+    Parameters
+    ----------
+    preset_name : str
+        The name of the preset to be loaded from, as given in the specified
+        presets text file.
+    presets_file : str
+        Path to the text file to loads the presets from. Default is
+        data_presets.txt.
+    val_mul : int
+        The relative size (in members) of the validation data-set, with respect
+        to the (training data-set). Set val_mul = 0 for no validation data-set.
+        Default is 1.
+    try_plot : bool
+        Whether or not to plot the datasets once generated. Default is False.
+    rng : numpy generator
+        The random number generator. Default is random unless a rng with a fixed
+        seed is provided.
+
+    Returns
+    -------
+    nested numpy array of floats
+        The generated numpy array of I-dimensional co-ordinates.
+    numpy array of ints or nested numpy array of ints
+        The classifications for each data-point. For binary classifications,
+        each target is an integer 0 or 1. For multi-class classification,
+        the target uses one-hot encoding.
+    """
+    #Load the chosen_preset from the presets_file presets from file
+    presets = load_presets(presets_file)
     chosen_preset = presets[preset_name]
 
     # Synthesise data
@@ -160,10 +221,7 @@ def generate_datasets(preset_name, presets_file='data_presets.txt',
     # Standardise data
     x_trn, x_val = standardise(x_trn, x_val)   
     
-    trn = (x_trn, d_trn)
-    val = (x_val, d_val)
-    
-    return (trn, val)
+    return ((x_trn, d_trn), (x_val, d_val))
 
 def plot_data(x, d, data_name = 'generic'):
     """
@@ -177,7 +235,7 @@ def plot_data(x, d, data_name = 'generic'):
         The classifications for each data-point. For binary classifications,
         each target is an integer 0 or 1. For multi-class classification,
         the target uses one-hot encoding.   
-    data_name : string
+    data_name : str
         The name of the data to be used in the plot title.
         
     Returns
