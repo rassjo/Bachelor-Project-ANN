@@ -75,7 +75,7 @@ class Model:
                 #This loop computes equation 2.10 in FYTN14 Lecture Notes
                 for j in range(0, current.shape[1]):
                     delta_sum = sum(deltas*current.T[j])
-                    derivative = previous.activation['der'](previous.argument[j])
+                    derivative = previous.activation['der'](prev_output[j])
                     new_deltas.append(delta_sum*derivative)
                 #Replace the deltas with the new values
                 deltas = new_deltas
