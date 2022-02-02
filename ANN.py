@@ -26,37 +26,32 @@ class Model:
             X = next_layer_input
         
     
-    def train(self, training,lrn_rate):
-        print(training[0], " ehy ", training[1])
-        #Right now this function only does online updating (one pattern)
-        #Obviously this has to be changed, I just threw something together
-        #quickly so I could test the backpropagation function.
-        #saving updates for one minibatch
-        self.weight_updates = []
+    def train(self, training, lrn_rate):
+        self.weight_updates = [] #Where we store the total weight update
         for i in range(0,len(self.layers)):
+            #Get the shapes of all the layers so we can abuse numpy array
+            #addition later
             self.weight_updates.append(np.zeros(self.layers[i].weights.shape))
+        #We want it in the reverse order because the all_updates we get from
+        #the backpropagation will be in the revere order
         self.weight_updates.reverse()
- 
+        #Now get the update for each pattern
         for n in range(0,len(training[0])):
             self.feed_forward(training[0][n])
-            #adding updates for every pattern to weightuopdates
+            #Adding updates for every pattern to the total weight updates
             all_updates = self.backpropagate(self.layers[-1].output,training[1][n])
-
             for i in range(0, len(self.layers)):
-                self.weight_updates[i] += all_updates[i]
-            print("\nweight_update [", n ,"]: ", self.weight_updates)
-            print("\nall_updates [", n ,"]: ", all_updates)            
+                self.weight_updates[i] += all_updates[i]   
             
-        N = len(training) # #patterns
-        #This should be called once multiple patterns has been used in
-        # a minibatch
+        N = len(training) #number of patterns
+        #This should be called once all patterns have been used in a minibatch
+        #Reverse this because weight_updates is reversed
         self.layers.reverse()
+        #Actually update the weights
         for i in range(0, len(self.layers)):
             self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
-        self.layers.reverse()
+        self.layers.reverse() #Return to original order
         
-        
-    
     def backpropagate(self,y,d):
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
@@ -75,7 +70,7 @@ class Model:
         #Now we want to calculate the update for all weights, layer by layer
         for i in range(0, num_layers):
             #For the current layer we need to know the weights
-            #Previous layer refers to the layer that comes before in the
+            #Previous output refers to the layer that comes before in the
             #feed-forward step
             current = self.layers[i].weights
             prev_output = self.layers[i].input
@@ -122,10 +117,8 @@ class Layer_Dense:
         #the input dimension to set up the next layer.
         return self.output
 
-def Error(finaloutput,targets):
-    y = finaloutput
-    d = targets
-    #E = -(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))[0]
+def Error(y,d):
+    #E = -(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))[0] save for later
     if d == 0:
         return(-np.log(1-y))
     elif d == 1:
@@ -157,11 +150,8 @@ ann_rng = generate_rng(ann_seed)
 trn, val = generate_datasets('circle_intercept', try_plot=True)    
 #-----------------------------------------------------------------------------
 
-#The input to feed into the first layer
-initialInput = trn[0][0] # For now, just use the first generated training input
-initialTarget = trn[1][0]
+input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
-input_dim = len(initialInput)
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
 layer_defines = [[1, act.tanh],
@@ -169,7 +159,6 @@ layer_defines = [[1, act.tanh],
 
 #Create the model based on the above
 test = Model(input_dim, layer_defines, ann_rng)
-
 
 def check_results(model):
 
@@ -185,14 +174,10 @@ def check_results(model):
 #Check results
 answer1 = check_results(test)
 
-#Train the model (right now on a single pattern)
-test.train(trn,0.1) #Try both target 0 and 1
+test.train(trn,0.01)
 
 #Check results again
 answer2 = check_results(test)
 
-
-#print("input ",initialInput) # For now, just use the first generated training input
-#print("target ",initialTarget)
 print(answer1)
 print(answer2)
