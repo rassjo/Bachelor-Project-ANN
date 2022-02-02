@@ -26,17 +26,36 @@ class Model:
             X = next_layer_input
         
     
-    def train(self, X, target):
+    def train(self, training,lrn_rate):
+        print(training[0], " ehy ", training[1])
         #Right now this function only does online updating (one pattern)
         #Obviously this has to be changed, I just threw something together
         #quickly so I could test the backpropagation function.
-        self.feed_forward(X)
-        all_updates = self.backpropagate(self.layers[-1].output,target)
+        #saving updates for one minibatch
+        self.weight_updates = []
+        for i in range(0,len(self.layers)):
+            self.weight_updates.append(np.zeros(self.layers[i].weights.shape))
+        self.weight_updates.reverse()
+ 
+        for n in range(0,len(training[0])):
+            self.feed_forward(training[0][n])
+            #adding updates for every pattern to weightuopdates
+            all_updates = self.backpropagate(self.layers[-1].output,training[1][n])
+
+            for i in range(0, len(self.layers)):
+                self.weight_updates[i] += all_updates[i]
+            print("\nweight_update [", n ,"]: ", self.weight_updates)
+            print("\nall_updates [", n ,"]: ", all_updates)            
+            
+        N = len(training) # #patterns
+        #This should be called once multiple patterns has been used in
+        # a minibatch
         self.layers.reverse()
         for i in range(0, len(self.layers)):
-            self.layers[i].weights -= all_updates[i]
+            self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
         self.layers.reverse()
-            
+        
+        
     
     def backpropagate(self,y,d):
         num_layers = len(self.layers) #Count the layers
@@ -80,7 +99,6 @@ class Model:
                 deltas = new_deltas
         #When we are done return the list of all layers to it's original state
         self.layers.reverse()
-        print(all_updates)
         return all_updates
         
 
@@ -107,9 +125,11 @@ class Layer_Dense:
 def Error(finaloutput,targets):
     y = finaloutput
     d = targets
-    N = len(targets)
-    E = -1/N*(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))
-    return E
+    #E = -(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))[0]
+    if d == 0:
+        return(-np.log(1-y))
+    elif d == 1:
+        return(-np.log(y))
 
 def classification_loss(y,d):
     return y-d
@@ -134,13 +154,12 @@ ann_rng = generate_rng(ann_seed)
 
 #-----------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('simple', try_plot=False)    
-x_trn, d_trn = trn[0], trn[1]
-x_val, d_val = val[0], val[1] 
+trn, val = generate_datasets('circle_intercept', try_plot=True)    
 #-----------------------------------------------------------------------------
 
 #The input to feed into the first layer
-initialInput = x_trn[0] # For now, just use the first generated training input
+initialInput = trn[0][0] # For now, just use the first generated training input
+initialTarget = trn[1][0]
 
 input_dim = len(initialInput)
 #Properties of all the layers
@@ -151,31 +170,29 @@ layer_defines = [[1, act.tanh],
 #Create the model based on the above
 test = Model(input_dim, layer_defines, ann_rng)
 
-test.feed_forward(initialInput)
 
 def check_results(model):
-    i=1
-    for layer in model.layers:
-    
-        print(f"\nWeights of layer {i}: \n {layer.weights}")
-        print(f"\nBiases of layer {i}: \n {layer.biases}")
-        print(f"\nOutput of  layer {i}: \n {layer.output}")
-        i += 1
-    return layer.output
 
-target = 0
+    loss = 0
+    N = len(trn[0])
+    for n  in range(0,N):
+        model.feed_forward(trn[0][n])
+        print("Pattern ", n ," out: ", model.layers[-1].output)
+        print("Pattern ", n ," targ: ", trn[1][n])
+        loss+=Error(model.layers[-1].output, trn[1][n])
+    return loss/N
 
 #Check results
 answer1 = check_results(test)
 
 #Train the model (right now on a single pattern)
-test.train(initialInput, target) #Try both target 0 and 1
-
-test.feed_forward(initialInput)
+test.train(trn,0.1) #Try both target 0 and 1
 
 #Check results again
 answer2 = check_results(test)
 
-#Did it improve?
-print(f"Distance from target before training: {abs(target - answer1)}")
-print(f"Distance from target after training: {abs(target - answer2)}")
+
+#print("input ",initialInput) # For now, just use the first generated training input
+#print("target ",initialTarget)
+print(answer1)
+print(answer2)
