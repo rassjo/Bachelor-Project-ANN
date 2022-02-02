@@ -28,20 +28,23 @@ class Model:
     
     def train(self, training, lrn_rate):
         self.weight_updates = [] #Where we store the total weight update
+        self.bias_updates = [] #Where we store the total bias update
         for i in range(0,len(self.layers)):
             #Get the shapes of all the layers so we can abuse numpy array
             #addition later
             self.weight_updates.append(np.zeros(self.layers[i].weights.shape))
+            self.bias_updates.append(np.zeros(self.layers[i].biases.shape))
         #We want it in the reverse order because the all_updates we get from
         #the backpropagation will be in the revere order
-        self.weight_updates.reverse()
+        self.weight_updates.reverse() ; self.bias_updates.reverse()
         #Now get the update for each pattern
         for n in range(0,len(training[0])):
             self.feed_forward(training[0][n])
             #Adding updates for every pattern to the total weight updates
-            all_updates = self.backpropagate(self.layers[-1].output,training[1][n])
+            all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][n])
             for i in range(0, len(self.layers)):
-                self.weight_updates[i] += all_updates[i]   
+                self.weight_updates[i] += all_w_updates[i]
+                self.bias_updates[i] += all_b_updates[i]
             
         N = len(training) #number of patterns
         #This should be called once all patterns have been used in a minibatch
@@ -50,13 +53,16 @@ class Model:
         #Actually update the weights
         for i in range(0, len(self.layers)):
             self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
+            self.layers[i].biases -= lrn_rate*self.bias_updates[i]/N
         self.layers.reverse() #Return to original order
+        self.weight_updates = [-lrn_rate*item/N for item in self.weight_updates]
+        self.bias_updates = [-lrn_rate*item/N for item in self.bias_updates]
         
     def backpropagate(self,y,d):
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
         #Prepare a place to save all the updates
-        all_updates = []
+        all_w_updates = [] ; all_b_updates = []
         #----------------------------------------------------------------------
         #The code below is based on the equations on page 25 in the FYTN14
         #lecture notes.
@@ -75,12 +81,14 @@ class Model:
             current = self.layers[i].weights
             prev_output = self.layers[i].input
             #Make an update matrix for the current layer
-            update = np.zeros(current.shape)
+            w_update = np.zeros(current.shape)
+            b_update = np.zeros(current.shape[0])
             #Equation 2.11 in FYTN14 Lecture Notes
             for row in range(0,current.shape[0]):
-                update[row] = deltas[row]*prev_output
+                w_update[row] = deltas[row]*prev_output
+                b_update[row] = deltas[row]
             #Save the updates for the current layers
-            all_updates.append(update)
+            all_w_updates.append(w_update) ; all_b_updates.append(b_update)
             #If we haven't reached the final layer in the backpropagation
             #procedure, we need to calculate the deltas for the next step
             if i+1 != num_layers:
@@ -94,7 +102,7 @@ class Model:
                 deltas = new_deltas
         #When we are done return the list of all layers to it's original state
         self.layers.reverse()
-        return all_updates
+        return all_w_updates, all_b_updates
         
 
 class Layer_Dense:   
@@ -102,7 +110,7 @@ class Layer_Dense:
     #the right activation function
     def __init__(self, dim, nodes, activation, rng=np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
-        self.biases = rng.standard_normal(size = (1, nodes))    
+        self.biases = rng.standard_normal(size = (1, nodes))
         self.activation = activation
         self.input = None
         self.output = None
@@ -154,7 +162,8 @@ input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
-layer_defines = [[1, act.tanh],
+layer_defines = [[2, act.tanh],
+                 [3, act.tanh],
                  [1, act.sig]]
 
 #Create the model based on the above
@@ -166,18 +175,29 @@ def check_results(model):
     N = len(trn[0])
     for n  in range(0,N):
         model.feed_forward(trn[0][n])
+        #print("Pattern", n ," in: ", trn[0][n])
         print("Pattern ", n ," out: ", model.layers[-1].output)
         print("Pattern ", n ," targ: ", trn[1][n])
         loss+=Error(model.layers[-1].output, trn[1][n])
     return loss/N
 
+def check_layers(model):
+    weights = [layer.weights for layer in model.layers]
+    biases = [layer.biases for layer in model.layers]
+    print("Weights: ", weights)
+    print("Biases: ", biases)
+
 #Check results
 answer1 = check_results(test)
 
-test.train(trn,0.01)
+check_layers(test)
+
+test.train(trn,0.1)
+
+check_layers(test)
 
 #Check results again
 answer2 = check_results(test)
 
-print(answer1)
-print(answer2)
+print("Loss before training", answer1)
+print("Loss after training", answer2)
