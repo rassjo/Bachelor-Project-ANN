@@ -1,4 +1,5 @@
 import numpy as np
+import activation_functions as act
 from synthetic_data_generation import *
 
 #Remember:
@@ -6,43 +7,134 @@ from synthetic_data_generation import *
 #Weights on the same COLUMN come from the same node
 
 class Model:
-    def __init__(self, initial, defines, rng=np.random.default_rng()):
+    def __init__(self, input_dim, layer_defines, rng=np.random.default_rng()):
         self.layers = [] #This is where we'll put all the layers we make
-        input_data = initial #Input data to use for the first layer
+        columns = input_dim #Number of columns to use for the first weight matrix
         #Make as many layers as we have defined properties for
-        for properties in defines:
+        for layer_properties in layer_defines:
             #Create a dense layer
-            self.layers.append(Layer_Dense(input_data,*properties))
-            #Then we want to feed the output of this layer to the next one
-            input_data = self.layers[-1].output()
+            self.layers.append(Layer_Dense(columns,*layer_properties))
+            #Then we want to know how many columns the weight matrix in the
+            #next layer should have, by looking at how many rows (i.e. how the
+            #many nodes) the current one has.
+            columns = self.layers[-1].weights.shape[0]
+    
+    def feed_forward(self, X):
+        for layer in self.layers:
+            layer.input = X
+            next_layer_input = layer.calc_output(X)
+            X = next_layer_input
+        
+    
+    def train(self, training,lrn_rate):
+        print(training[0], " ehy ", training[1])
+        #Right now this function only does online updating (one pattern)
+        #Obviously this has to be changed, I just threw something together
+        #quickly so I could test the backpropagation function.
+        #saving updates for one minibatch
+        self.weight_updates = []
+        for i in range(0,len(self.layers)):
+            self.weight_updates.append(np.zeros(self.layers[i].weights.shape))
+        self.weight_updates.reverse()
+ 
+        for n in range(0,len(training[0])):
+            self.feed_forward(training[0][n])
+            #adding updates for every pattern to weightuopdates
+            all_updates = self.backpropagate(self.layers[-1].output,training[1][n])
 
+            for i in range(0, len(self.layers)):
+                self.weight_updates[i] += all_updates[i]
+            print("\nweight_update [", n ,"]: ", self.weight_updates)
+            print("\nall_updates [", n ,"]: ", all_updates)            
+            
+        N = len(training) # #patterns
+        #This should be called once multiple patterns has been used in
+        # a minibatch
+        self.layers.reverse()
+        for i in range(0, len(self.layers)):
+            self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
+        self.layers.reverse()
+        
+        
+    
+    def backpropagate(self,y,d):
+        num_layers = len(self.layers) #Count the layers
+        self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
+        #Prepare a place to save all the updates
+        all_updates = []
+        #----------------------------------------------------------------------
+        #The code below is based on the equations on page 25 in the FYTN14
+        #lecture notes.
+        #----------------------------------------------------------------------
+        #Set the first round of deltas to the hard-coded loss term that is
+        #obtained when picking sigmoid output and binary cross-entropy loss.
+        #NOTE: We might want to change this later on in case we want to
+        #expand the scope of problems our network to solve, however, right
+        #now we just need to be able to train it so I'll leave this for now.
+        deltas = loss(y,d)
+        #Now we want to calculate the update for all weights, layer by layer
+        for i in range(0, num_layers):
+            #For the current layer we need to know the weights
+            #Previous layer refers to the layer that comes before in the
+            #feed-forward step
+            current = self.layers[i].weights
+            prev_output = self.layers[i].input
+            #Make an update matrix for the current layer
+            update = np.zeros(current.shape)
+            #Equation 2.11 in FYTN14 Lecture Notes
+            for row in range(0,current.shape[0]):
+                update[row] = deltas[row]*prev_output
+            #Save the updates for the current layers
+            all_updates.append(update)
+            #If we haven't reached the final layer in the backpropagation
+            #procedure, we need to calculate the deltas for the next step
+            if i+1 != num_layers:
+                new_deltas = []
+                #This loop computes equation 2.10 in FYTN14 Lecture Notes
+                for j in range(0, current.shape[1]):
+                    delta_sum = sum(deltas*current.T[j])
+                    derivative = self.layers[i+1].activation['der'](prev_output[j])
+                    new_deltas.append(delta_sum*derivative)
+                #Replace the deltas with the new values
+                deltas = new_deltas
+        #When we are done return the list of all layers to it's original state
+        self.layers.reverse()
+        return all_updates
+        
 
 class Layer_Dense:   
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
-    def __init__(self, X, nodes, activation, rng=np.random.default_rng()):
-        #Dimension of the input to the layer, needed to get the
-        #right size on the weight matrix
-        dim = len(X)
+    def __init__(self, dim, nodes, activation, rng=np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))    
-        self.input = X
         self.activation = activation
+        self.input = None
+        self.output = None
     
     #Calculate the output of the layer
-    def output(self):
-        argument = np.dot(self.weights, self.input) + self.biases
-        return self.activation(argument).flatten()
+    def calc_output(self, X):
+        self.input = X
+        argument = (np.dot(self.weights, self.input) + self.biases).flatten()
+        self.output = self.activation['act'](argument)
         #We want to flatten the output to turn it into a 1D array, otherwise
         #it will be a 2D array which causes problems when we want to check
         #the input dimension to set up the next layer.
+        return self.output
 
 def Error(finaloutput,targets):
     y = finaloutput
     d = targets
-    N = len(targets)
-    E= -1/N*(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))
-    return E
+    #E = -(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))[0]
+    if d == 0:
+        return(-np.log(1-y))
+    elif d == 1:
+        return(-np.log(y))
+
+def classification_loss(y,d):
+    return y-d
+
+loss = np.vectorize(classification_loss)
 
 #------------------------------------------------------------------------------
 # Create random number generators:
@@ -63,57 +155,44 @@ ann_rng = generate_rng(ann_seed)
 #-----------------------------------------------------------------------------
 # Import data
 trn, val = generate_datasets('circle_intercept', try_plot=True)    
-x_trn, d_trn = trn[0], trn[1]
-x_val, d_val = val[0], val[1] 
+#-----------------------------------------------------------------------------
 
-#------------------------------------------------------------------------------
-#Activation function definitions:
-
-linear = lambda y: y
-
-act_linear = np.vectorize(linear)
-#Vectorize allows the function to act elementwise on arrays
-
-ReLU = lambda y: max(0.0,y)
-#NOTE: If we use 0 instead of 0.0 numpy will return an int32 array when the
-#first entry in the array is 0, meaning it rounds the other numbers down to
-#the closest integer as well!
-
-act_ReLU = np.vectorize(ReLU)
-
-logistic = lambda y: 1/(1+np.e**(-y))
-
-act_logistic = np.vectorize(logistic)
-
-d_logistic = lambda y: y*(1.0 - y)
-
-tanh = lambda y: np.tanh(y)
-
-act_tanh = np.vectorize(tanh)
-
-d_tanh = lambda y: 1.0 - y**2
-
-#------------------------------------------------------------------------------
 #The input to feed into the first layer
-initialInput = x_trn[0] # For now, just use the first generated training input
+initialInput = trn[0][0] # For now, just use the first generated training input
+initialTarget = trn[1][0]
 
+input_dim = len(initialInput)
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
-layers = [[1, act_linear],
-          [3, act_linear],
-          [2, act_linear],
-          [4, act_ReLU]]
+layer_defines = [[1, act.tanh],
+                 [1, act.sig]]
 
 #Create the model based on the above
-model = Model(initialInput, layers, ann_rng)
-
-#Check the results
-i=1
-for layer in model.layers:
-
-    print(f"\nWeights of layer {i}: \n {layer.weights}")
-    print(f"\nBiases of layer {i}: \n {layer.biases}")
-    print(f"\nOutput of  layer {i}: \n {layer.output()}")
-    i += 1
+test = Model(input_dim, layer_defines, ann_rng)
 
 
+def check_results(model):
+
+    loss = 0
+    N = len(trn[0])
+    for n  in range(0,N):
+        model.feed_forward(trn[0][n])
+        print("Pattern ", n ," out: ", model.layers[-1].output)
+        print("Pattern ", n ," targ: ", trn[1][n])
+        loss+=Error(model.layers[-1].output, trn[1][n])
+    return loss/N
+
+#Check results
+answer1 = check_results(test)
+
+#Train the model (right now on a single pattern)
+test.train(trn,0.1) #Try both target 0 and 1
+
+#Check results again
+answer2 = check_results(test)
+
+
+#print("input ",initialInput) # For now, just use the first generated training input
+#print("target ",initialTarget)
+print(answer1)
+print(answer2)
