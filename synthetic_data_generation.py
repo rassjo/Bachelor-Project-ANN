@@ -4,7 +4,9 @@ This script contains various procedures for data generation.
 Call the generate_datasets function with the appropriate parameters to
 quickly get up and running.
 
-TO DO: ADD 'help', THAT DISPLAYS THE AVAILABLE PRESETS
+TO DO: ADD 'help', THAT DISPLAYS THE AVAILABLE PRESETS.
+       CAN PLOTTING BE SIMPLIFIED BY USING NUMPY.T (TRANSPOSE), RATHER THAN
+       CONVERING TO LISTS, USING zip, AND CONVERTING BACK?
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -274,8 +276,8 @@ def plot_data(x, d, data_name = 'generic'):
     plt.title('Synthetic ' + data_name + ' data')
     num_classes = len(indices)-1
     for i in range(0, num_classes):
-        x = [xy[0] for xy in dx[indices[i]:indices[i+1]-1, 1]]
-        y = [xy[1] for xy in dx[indices[i]:indices[i+1]-1, 1]]
+        x = [xy[0] for xy in dx[indices[i]:indices[i+1], 1]]
+        y = [xy[1] for xy in dx[indices[i]:indices[i+1], 1]]
         plt.scatter(x, y, label = str(dx[indices[i], 0]))  
     
     # Make x and y axis scale equally
