@@ -26,37 +26,40 @@ class Model:
             X = next_layer_input
         
     
-    def train(self, training, lrn_rate):
-        self.weight_updates = [] #Where we store the total weight update
-        self.bias_updates = [] #Where we store the total bias update
-        for i in range(0,len(self.layers)):
-            #Get the shapes of all the layers so we can abuse numpy array
-            #addition later
-            self.weight_updates.append(np.zeros(self.layers[i].weights.shape))
-            self.bias_updates.append(np.zeros(self.layers[i].biases.shape))
-        #We want it in the reverse order because the all_updates we get from
-        #the backpropagation will be in the revere order
-        self.weight_updates.reverse() ; self.bias_updates.reverse()
-        #Now get the update for each pattern
-        for n in range(0,len(training[0])):
-            self.feed_forward(training[0][n])
-            #Adding updates for every pattern to the total weight updates
-            all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][n])
-            for i in range(0, len(self.layers)):
-                self.weight_updates[i] += all_w_updates[i]
-                self.bias_updates[i] += all_b_updates[i]
-            
+    def train(self, training, lrn_rate, epochs):
+        history = []
         N = len(training) #number of patterns
-        #This should be called once all patterns have been used in a minibatch
-        #Reverse this because weight_updates is reversed
-        self.layers.reverse()
-        #Actually update the weights
-        for i in range(0, len(self.layers)):
-            self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
-            self.layers[i].biases -= lrn_rate*self.bias_updates[i]/N
-        self.layers.reverse() #Return to original order
-        self.weight_updates = [-lrn_rate*item/N for item in self.weight_updates]
-        self.bias_updates = [-lrn_rate*item/N for item in self.bias_updates]
+        for t in range(0, epochs):
+            self.weight_updates = [] #Where we store the total weight update
+            self.bias_updates = [] #Where we store the total bias update
+            for i in range(0,len(self.layers)):
+                #Get the shapes of all the layers so we can abuse numpy array
+                #addition later
+                self.weight_updates.append(np.zeros(self.layers[i].weights.shape))
+                self.bias_updates.append(np.zeros(self.layers[i].biases.shape))
+            #We want it in the reverse order because the all_updates we get from
+            #the backpropagation will be in the revere order
+            self.weight_updates.reverse() ; self.bias_updates.reverse()
+            #Now get the update for each pattern
+            for n in range(0,len(training[0])):
+                self.feed_forward(training[0][n])
+                #Adding updates for every pattern to the total weight updates
+                all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][n])
+                for i in range(0, len(self.layers)):
+                    self.weight_updates[i] += all_w_updates[i]
+                    self.bias_updates[i] += all_b_updates[i]
+            
+            
+            #This should be called once all patterns have been used in a minibatch
+            #Reverse this because weight_updates is reversed
+            self.layers.reverse()
+            #Actually update the weights
+            for i in range(0, len(self.layers)):
+                self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
+                self.layers[i].biases -= lrn_rate*self.bias_updates[i]/N
+            self.layers.reverse() #Return to original order
+            self.weight_updates = [-lrn_rate*item/N for item in self.weight_updates]
+            self.bias_updates = [-lrn_rate*item/N for item in self.bias_updates]
         
     def backpropagate(self,y,d):
         num_layers = len(self.layers) #Count the layers
@@ -155,29 +158,29 @@ ann_rng = generate_rng(ann_seed)
 
 #-----------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('circle_intercept', try_plot=True)    
+trn, val = generate_datasets('circle_ception', try_plot=True)    
 #-----------------------------------------------------------------------------
 
 input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
-layer_defines = [[2, act.tanh],
-                 [3, act.tanh],
+layer_defines = [[4, act.tanh],
+                 [4, act.tanh],
                  [1, act.sig]]
 
 #Create the model based on the above
 test = Model(input_dim, layer_defines, ann_rng)
 
-def check_results(model):
-
+def check_results(model, show=False):
     loss = 0
     N = len(trn[0])
     for n  in range(0,N):
         model.feed_forward(trn[0][n])
         #print("Pattern", n ," in: ", trn[0][n])
-        print("Pattern ", n ," out: ", model.layers[-1].output)
-        print("Pattern ", n ," targ: ", trn[1][n])
+        if show:
+            print("Pattern ", n ," out: ", model.layers[-1].output)
+            print("Pattern ", n ," targ: ", trn[1][n])
         loss+=Error(model.layers[-1].output, trn[1][n])
     return loss/N
 
@@ -190,11 +193,11 @@ def check_layers(model):
 #Check results
 answer1 = check_results(test)
 
-check_layers(test)
+#check_layers(test)
 
-test.train(trn,0.1)
+test.train(trn,0.009,50)
 
-check_layers(test)
+#check_layers(test)
 
 #Check results again
 answer2 = check_results(test)
