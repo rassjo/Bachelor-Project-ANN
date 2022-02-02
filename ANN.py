@@ -7,22 +7,31 @@ from synthetic_data_generation import *
 #Weights on the same COLUMN come from the same node
 
 class Model:
-    def __init__(self, initial, defines, rng=np.random.default_rng()):
+    def __init__(self, input_dim, layer_defines, rng=np.random.default_rng()):
         self.layers = [] #This is where we'll put all the layers we make
-        self.initial = initial
-        input_data = self.initial #Input data to use for the first layer
+        columns = input_dim #Number of columns to use for the first weight matrix
         #Make as many layers as we have defined properties for
-        for properties in defines:
+        for layer_properties in layer_defines:
             #Create a dense layer
-            self.layers.append(Layer_Dense(input_data,*properties))
-            #Then we want to feed the output of this layer to the next one
-            input_data = self.layers[-1].output()
+            self.layers.append(Layer_Dense(columns,*layer_properties))
+            #Then we want to know how many columns the weight matrix in the
+            #next layer should have, by looking at how many rows (i.e. how the
+            #many nodes) the current one has.
+            columns = self.layers[-1].weights.shape[0]
     
-    def train(self, target):
+    def feed_forward(self, X):
+        for layer in self.layers:
+            layer.input = X
+            next_layer_input = layer.calc_output(X)
+            X = next_layer_input
+        
+    
+    def train(self, X, target):
         #Right now this function only does online updating (one pattern)
         #Obviously this has to be changed, I just threw something together
         #quickly so I could test the backpropagation function.
-        all_updates = self.backpropagate(self.layers[-1].output(),target)
+        self.feed_forward(X)
+        all_updates = self.backpropagate(self.layers[-1].output,target)
         self.layers.reverse()
         for i in range(0, len(self.layers)):
             self.layers[i].weights -= all_updates[i]
@@ -30,12 +39,8 @@ class Model:
             
     
     def backpropagate(self,y,d):
-        #Count the layers
-        num_layers = len(self.layers)
-        #Reverse the order of the layers so we can do BACKpropagatin
-        self.layers.reverse()
-        #Add this to prevent index error later
-        self.layers.append(self.initial)
+        num_layers = len(self.layers) #Count the layers
+        self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
         #Prepare a place to save all the updates
         all_updates = []
         #----------------------------------------------------------------------
@@ -51,18 +56,12 @@ class Model:
         #Now we want to calculate the update for all weights, layer by layer
         for i in range(0, num_layers):
             #For the current layer we need to know the weights
-            #Previous layer refer to the layer that comes before in the
+            #Previous layer refers to the layer that comes before in the
             #feed-forward step
-            current = self.layers[i].weights ; previous = self.layers[i+1]
+            current = self.layers[i].weights
+            prev_output = self.layers[i].input
             #Make an update matrix for the current layer
             update = np.zeros(current.shape)
-            #If we have arrived at the final hidden layer in the
-            #backpropagation step, use the input values.
-            if i+1 == num_layers:
-                prev_output = self.initial
-            #Otherwise, calculate the output of the previous layer.
-            else:
-                prev_output = previous.activation['act'](previous.argument)
             #Equation 2.11 in FYTN14 Lecture Notes
             for row in range(0,current.shape[0]):
                 update[row] = deltas[row]*prev_output
@@ -75,35 +74,35 @@ class Model:
                 #This loop computes equation 2.10 in FYTN14 Lecture Notes
                 for j in range(0, current.shape[1]):
                     delta_sum = sum(deltas*current.T[j])
-                    derivative = previous.activation['der'](prev_output[j])
+                    derivative = self.layers[i+1].activation['der'](prev_output[j])
                     new_deltas.append(delta_sum*derivative)
                 #Replace the deltas with the new values
                 deltas = new_deltas
         #When we are done return the list of all layers to it's original state
-        self.layers.pop() ; self.layers.reverse()
-        
+        self.layers.reverse()
+        print(all_updates)
         return all_updates
         
 
 class Layer_Dense:   
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
-    def __init__(self, X, nodes, activation, rng=np.random.default_rng()):
-        #Dimension of the input to the layer, needed to get the
-        #right size on the weight matrix
-        dim = len(X)
+    def __init__(self, dim, nodes, activation, rng=np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))    
-        self.input = X
         self.activation = activation
+        self.input = None
+        self.output = None
     
     #Calculate the output of the layer
-    def output(self):
-        self.argument = (np.dot(self.weights, self.input) + self.biases).flatten()
-        return self.activation['act'](self.argument)
+    def calc_output(self, X):
+        self.input = X
+        argument = (np.dot(self.weights, self.input) + self.biases).flatten()
+        self.output = self.activation['act'](argument)
         #We want to flatten the output to turn it into a 1D array, otherwise
         #it will be a 2D array which causes problems when we want to check
         #the input dimension to set up the next layer.
+        return self.output
 
 def Error(finaloutput,targets):
     y = finaloutput
@@ -143,13 +142,16 @@ x_val, d_val = val[0], val[1]
 #The input to feed into the first layer
 initialInput = x_trn[0] # For now, just use the first generated training input
 
+input_dim = len(initialInput)
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
 layer_defines = [[1, act.tanh],
                  [1, act.sig]]
 
 #Create the model based on the above
-test = Model(initialInput, layer_defines, ann_rng)
+test = Model(input_dim, layer_defines, ann_rng)
+
+test.feed_forward(initialInput)
 
 def check_results(model):
     i=1
@@ -157,9 +159,9 @@ def check_results(model):
     
         print(f"\nWeights of layer {i}: \n {layer.weights}")
         print(f"\nBiases of layer {i}: \n {layer.biases}")
-        print(f"\nOutput of  layer {i}: \n {layer.output()}")
+        print(f"\nOutput of  layer {i}: \n {layer.output}")
         i += 1
-    return layer.output()
+    return layer.output
 
 target = 0
 
@@ -167,7 +169,9 @@ target = 0
 answer1 = check_results(test)
 
 #Train the model (right now on a single pattern)
-test.train(target) #Try both target 0 and 1
+test.train(initialInput, target) #Try both target 0 and 1
+
+test.feed_forward(initialInput)
 
 #Check results again
 answer2 = check_results(test)
