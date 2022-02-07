@@ -1,6 +1,6 @@
 import numpy as np
 import activation_functions as act
-from synthetic_data_generation import *
+import synthetic_data_generation as sdg
 
 #Remember:
 #Weights on the same ROW act on the same node
@@ -61,7 +61,7 @@ class Model:
             self.weight_updates = [-lrn_rate*item/N for item in self.weight_updates]
             self.bias_updates = [-lrn_rate*item/N for item in self.bias_updates]
         
-    def backpropagate(self,y,d):
+    def backpropagate(self, y, d):
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
         #Prepare a place to save all the updates
@@ -128,7 +128,7 @@ class Layer_Dense:
         #the input dimension to set up the next layer.
         return self.output
 
-def Error(y,d):
+def Error(y, d):
     #E = -(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))[0] save for later
     if d == 0:
         return(-np.log(1-y))
@@ -156,10 +156,11 @@ def generate_rng(seed):
 data_rng = generate_rng(data_seed)
 ann_rng = generate_rng(ann_seed)
 
-#-----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('circle_ception', try_plot=True)    
-#-----------------------------------------------------------------------------
+trn, val = sdg.generate_datasets('circle_intercept', try_plot=True)    
+
+#------------------------------------------------------------------------------
 
 input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
@@ -175,32 +176,120 @@ test = Model(input_dim, layer_defines, ann_rng)
 def check_results(model, show=False):
     loss = 0
     N = len(trn[0])
-    for n  in range(0,N):
+    for n in range(0,N):
         model.feed_forward(trn[0][n])
         #print("Pattern", n ," in: ", trn[0][n])
         if show:
-            print("Pattern ", n ," out: ", model.layers[-1].output)
-            print("Pattern ", n ," targ: ", trn[1][n])
-        loss+=Error(model.layers[-1].output, trn[1][n])
+            print("Pattern", n ,"out:", model.layers[-1].output)
+            print("Pattern", n ,"targ:", trn[1][n])
+        loss += Error(model.layers[-1].output, trn[1][n])
     return loss/N
 
 def check_layers(model):
     weights = [layer.weights for layer in model.layers]
     biases = [layer.biases for layer in model.layers]
-    print("Weights: ", weights)
-    print("Biases: ", biases)
+    print("Weights:", weights)
+    print("Biases:", biases)
+    
+def stats_class(model, xs, ds, data_name = 'training'):
+    """
+    input :  
+        model = the model
+        x = inputs
+        y = targets
+        data_name = provided text string
+             
+    output : 
+        accuracy = fraction of correctly classified cases
+        loss = typically the cross-entropy error
+    """
+    
+    def binary(output):
+        if (output > 0.5):
+            output = 1
+        else:
+            output = 0
+        return(output)
+    
+    def multi(outputs): # convert multi-classification outputs to one-hot.
+        hot_index = np.argmax(outputs)        
+        for i in range(0, len(outputs)):
+            outputs[i] = 0        
+        outputs[hot_index] = 1
+        return(outputs)          
+    
+    #print(multi(np.array([0.9, 0.05, 0.05])))
+    
+    tp, tn, fp, fn = 0, 0, 0, 0
+    N = len(xs)
+    for n in range(0, N): # feed forward for each pattern
+        model.feed_forward(xs[n])
+        target = ds[n]
+        
+        outputs = model.layers[-1].output
+        
+        if (len(outputs) == 1):
+            outputs = binary(outputs[0])
+            
+            if (outputs > 0.5):
+                if (outputs == target):
+                    tp += 1
+                else:
+                    fp += 1
+            else:
+                if (outputs == target):
+                    tn += 1
+                else:
+                    fn += 1
+                    
+        else:
+            outputs = multi(outputs)
+            
+            # code here for multi-classification...
+            # confusion matrix?
+
+    
+    acc = (tp + tn) / (tp + fn + tn + fp) # fraction of correct predictions
+    sens = tp / (tp + fn) # fraction of actual positivies that were correctly
+                          # predicted
+    spec = tn / (tn + fp) # fraction of actual negatives that were correctly
+                          # predicted
+    odds = "div by zero" # in case of division by zero
+    if (fn * fp != 0):
+        odds = (tp * tn) / (fn * fp) # the “odds” you get a positive right
+                                     # divided by the odds you get a negative
+                                     # wrong
+    
+    print('\nStatistics for ' + data_name + ' data:')
+    print('N = ' + str(N) + ', TP = ' + str(tp) + ', FN = ' + str(fn) +
+          ', TN = ' + str(tn) + ', FP = ' + str(fp))
+    print('Accuracy = ' + str(acc))
+    print('Sensitivity = ' + str(sens))
+    print('Specificity = ' + str(spec))
+    print('Odds ratio = ' + str(odds))
+
+    return acc, sens, spec, odds
 
 #Check results
 answer1 = check_results(test)
+stats_class(test, trn[0], trn[1])
 
 #check_layers(test)
 
-test.train(trn,0.009,50)
+
+
+test.train(trn, 0.009, 50)
 
 #check_layers(test)
 
 #Check results again
 answer2 = check_results(test)
+stats_class(test, trn[0], trn[1], 'training')
 
-print("Loss before training", answer1)
+print("\nLoss before training", answer1)
 print("Loss after training", answer2)
+
+
+
+
+
