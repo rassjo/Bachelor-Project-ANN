@@ -1,10 +1,12 @@
 import numpy as np
 import activation_functions as act
 from synthetic_data_generation import *
+import matplotlib.pyplot as plt
 
 #Remember:
 #Weights on the same ROW act on the same node
 #Weights on the same COLUMN come from the same node
+
 
 class Model:
     def __init__(self, input_dim, layer_defines, rng=np.random.default_rng()):
@@ -27,9 +29,12 @@ class Model:
         
     
     def train(self, training, lrn_rate, epochs):
-        history = []
+        #history contains the error at the start and after each epoch
+        history = []        
         N = len(training) #number of patterns
         for t in range(0, epochs):
+            #ylist contains the output of each pattern 
+            ylist=[]
             self.weight_updates = [] #Where we store the total weight update
             self.bias_updates = [] #Where we store the total bias update
             for i in range(0,len(self.layers)):
@@ -48,8 +53,9 @@ class Model:
                 for i in range(0, len(self.layers)):
                     self.weight_updates[i] += all_w_updates[i]
                     self.bias_updates[i] += all_b_updates[i]
-            
-            
+                #append the output of each pattern
+                ylist.append(float(self.layers[-1].output))
+                
             #This should be called once all patterns have been used in a minibatch
             #Reverse this because weight_updates is reversed
             self.layers.reverse()
@@ -60,7 +66,30 @@ class Model:
             self.layers.reverse() #Return to original order
             self.weight_updates = [-lrn_rate*item/N for item in self.weight_updates]
             self.bias_updates = [-lrn_rate*item/N for item in self.bias_updates]
+            #Calculate the error of each pattern
+            lossarray=ErrorV(np.array(ylist),training[1])
+            #Calculate the average error of the epoch and append it
+            history.append(sum(lossarray)/len(lossarray))
         
+        #Calculate the error after the final weight update without updating the weights further
+        ylist=[]
+        for n in range(0,len(training[0])):
+            self.feed_forward(training[0][n])            
+            ylist.append(float(self.layers[-1].output))
+        #Append the results
+        lossarray=ErrorV(np.array(ylist),training[1])
+        history.append(sum(lossarray)/len(lossarray))
+        
+        # Plot the error over epochs
+        plt.figure()
+        plt.plot(np.arange(0,len(history)), history, 'orange', label='Training error')
+        plt.xlabel('Epochs')
+        plt.ylabel('Error')
+        plt.title('Training error over epochs')
+        plt.legend()
+        plt.savefig('ErrorPlot.png')
+        plt.show()
+            
     def backpropagate(self,y,d):
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
@@ -140,6 +169,9 @@ def classification_loss(y,d):
 
 loss = np.vectorize(classification_loss)
 
+ErrorV = np.vectorize(Error)
+
+
 #------------------------------------------------------------------------------
 # Create random number generators:
 # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
@@ -158,15 +190,15 @@ ann_rng = generate_rng(ann_seed)
 
 #-----------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('circle_ception', try_plot=True)    
+trn, val = generate_datasets('baby', try_plot=True)    
 #-----------------------------------------------------------------------------
 
 input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
-layer_defines = [[4, act.tanh],
-                 [4, act.tanh],
+layer_defines = [[1, act.tanh],
+                 [1, act.tanh],
                  [1, act.sig]]
 
 #Create the model based on the above
@@ -195,7 +227,7 @@ answer1 = check_results(test)
 
 #check_layers(test)
 
-test.train(trn,0.009,50)
+test.train(trn,0.009,200)
 
 #check_layers(test)
 
