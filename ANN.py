@@ -1,6 +1,7 @@
 import numpy as np
 import activation_functions as act
 import synthetic_data_generation as sdg
+import training_statistics as ts
 
 #Remember:
 #Weights on the same ROW act on the same node
@@ -158,7 +159,7 @@ ann_rng = generate_rng(ann_seed)
 
 #------------------------------------------------------------------------------
 # Import data
-trn, val = sdg.generate_datasets('circle_intercept', try_plot=True)    
+trn, val = sdg.generate_datasets('circle_intercept', try_plot=False)    
 
 #------------------------------------------------------------------------------
 
@@ -190,102 +191,36 @@ def check_layers(model):
     biases = [layer.biases for layer in model.layers]
     print("Weights:", weights)
     print("Biases:", biases)
-    
-def stats_class(model, xs, ds, data_name = 'training'):
-    """
-    input :  
-        model = the model
-        x = inputs
-        y = targets
-        data_name = provided text string
-             
-    output : 
-        accuracy = fraction of correctly classified cases
-        loss = typically the cross-entropy error
-    """
-    
-    def binary(output):
-        if (output > 0.5):
-            output = 1
-        else:
-            output = 0
-        return(output)
-    
-    def multi(outputs): # convert multi-classification outputs to one-hot.
-        hot_index = np.argmax(outputs)        
-        for i in range(0, len(outputs)):
-            outputs[i] = 0        
-        outputs[hot_index] = 1
-        return(outputs)          
-    
-    #print(multi(np.array([0.9, 0.05, 0.05])))
-    
-    tp, tn, fp, fn = 0, 0, 0, 0
+
+def full_feed_forward(model, xs):
+    outputs = []
     N = len(xs)
     for n in range(0, N): # feed forward for each pattern
         model.feed_forward(xs[n])
-        target = ds[n]
-        
-        outputs = model.layers[-1].output
-        
-        if (len(outputs) == 1):
-            outputs = binary(outputs[0])
-            
-            if (outputs > 0.5):
-                if (outputs == target):
-                    tp += 1
-                else:
-                    fp += 1
-            else:
-                if (outputs == target):
-                    tn += 1
-                else:
-                    fn += 1
-                    
-        else:
-            outputs = multi(outputs)
-            
-            # code here for multi-classification...
-            # confusion matrix?
+        output = model.layers[-1].output
+        outputs.append(output)
+    return(outputs)
 
-    
-    acc = (tp + tn) / (tp + fn + tn + fp) # fraction of correct predictions
-    sens = tp / (tp + fn) # fraction of actual positivies that were correctly
-                          # predicted
-    spec = tn / (tn + fp) # fraction of actual negatives that were correctly
-                          # predicted
-    odds = "div by zero" # in case of division by zero
-    if (fn * fp != 0):
-        odds = (tp * tn) / (fn * fp) # the “odds” you get a positive right
-                                     # divided by the odds you get a negative
-                                     # wrong
-    
-    print('\nStatistics for ' + data_name + ' data:')
-    print('N = ' + str(N) + ', TP = ' + str(tp) + ', FN = ' + str(fn) +
-          ', TN = ' + str(tn) + ', FP = ' + str(fp))
-    print('Accuracy = ' + str(acc))
-    print('Sensitivity = ' + str(sens))
-    print('Specificity = ' + str(spec))
-    print('Odds ratio = ' + str(odds))
-
-    return acc, sens, spec, odds
+# Just use the training for the moment
+x_trn = trn[0]
+d_trn = trn[1]
 
 #Check results
 answer1 = check_results(test)
-stats_class(test, trn[0], trn[1])
 
-#check_layers(test)
+outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
+ts.stats_class(outputs, d_trn, 'pre-training', should_plot_cm = False)
 
-
-
+# Train
 test.train(trn, 0.009, 50)
-
-#check_layers(test)
 
 #Check results again
 answer2 = check_results(test)
-stats_class(test, trn[0], trn[1], 'training')
 
+outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
+ts.stats_class(outputs, d_trn, 'post-training', should_plot_cm = False)
+
+# Display losees
 print("\nLoss before training", answer1)
 print("Loss after training", answer2)
 
