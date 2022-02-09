@@ -209,7 +209,7 @@ d_trn = trn[1]
 answer1 = check_results(test)
 
 outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
-ts.stats_class(outputs, d_trn, 'pre-training', should_plot_cm = False)
+ts.class_stats(outputs, d_trn, 'pre-training', should_plot_cm = False)
 
 # Train
 test.train(trn, 0.009, 50)
@@ -218,7 +218,7 @@ test.train(trn, 0.009, 50)
 answer2 = check_results(test)
 
 outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
-ts.stats_class(outputs, d_trn, 'post-training', should_plot_cm = False)
+ts.class_stats(outputs, d_trn, 'post-training', should_plot_cm = False)
 
 # Display losees
 print("\nLoss before training", answer1)
