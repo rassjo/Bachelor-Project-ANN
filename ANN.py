@@ -33,6 +33,7 @@ class Model:
         history = []
         N = len(training[0]) #number of patterns
         for t in range(0, epochs): #A added a loop and changed the one below (for going through epochs with minibatches)
+            ylist = []
             self.weight_updates = [] #Where we store the total weight update
             self.bias_updates = [] #Where we store the total bias update
             for i in range(0,len(self.layers)):
@@ -40,6 +41,7 @@ class Model:
                 #addition later
                 self.weight_updates.append(np.zeros(self.layers[i].weights.shape))
                 self.bias_updates.append(np.zeros(self.layers[i].biases.shape))
+                
             #We want it in the reverse order because the all_updates we get from
             #the backpropagation will be in the revere order
             self.weight_updates.reverse() ; self.bias_updates.reverse()
@@ -66,6 +68,8 @@ class Model:
                     for i in range(0, len(self.layers)):
                         self.weight_updates[i] += all_w_updates[i]
                         self.bias_updates[i] += all_b_updates[i]
+                    #append the output of each pattern
+                    ylist.append(float(self.layers[-1].output))
                     #Now one minibatch has been made
                 #print(len(training[0]), " ... ", len(training[0])//minibatchsize, " ... ", n)
                 minibatchstart += count
@@ -73,18 +77,42 @@ class Model:
                     #hi = "hi"
                     extra = len(training[0])%minibatchsize #What is left after dividing so all minibatches have same number of patterns
                     minibatchsize = minibatchsize+extra
-                    
+                
                 #This should be called once all patterns in a minibatch have been used for additive uppdates
                 #Reverse this because weight_updates is reversed
                 self.layers.reverse()
                 #Actually update the weights
                 for i in range(0, len(self.layers)):
-                    self.layers[i].weights -= lrn_rate*self.weight_updates[i]/minibatchsize
-                    self.layers[i].biases -= lrn_rate*self.bias_updates[i]/minibatchsize
+                  layer = self.layers[i] #Current layer
+                  #Update the weights with the result from backpropagation and
+                  #the derivative of the L2-term
+                  layer.weights -= (lrn_rate*self.weight_updates[i]/minibatchsize + layer.l2_s*layer.weights)
+                  layer.biases -= lrn_rate*self.bias_updates[i]/minibatchsize
                 self.layers.reverse() #Return to original order
-                #self.weight_updates = [-lrn_rate*item/minibatchsize for item in self.weight_updates]
-                #self.bias_updates = [-lrn_rate*item/minibatchsize for item in self.bias_updates]
+                #Calculate the error of each pattern
+                lossarray=ErrorV(np.array(ylist),training[1])
+                #Calculate the average error of the epoch and append it
+                history.append(sum(lossarray)/len(lossarray))
+
+        #Calculate the error after the final weight update without updating the weights further
+        ylist=[]
+        for n in range(0,len(training[0])):
+            self.feed_forward(training[0][n])            
+            ylist.append(float(self.layers[-1].output))
+        #Append the results
+        lossarray=ErrorV(np.array(ylist),training[1])
+        history.append(sum(lossarray)/len(lossarray))
         
+        # Plot the error over epochs
+        plt.figure()
+        plt.plot(np.arange(0,len(history)), history, 'orange', label='Training error')
+        plt.xlabel('Epochs')
+        plt.ylabel('Error')
+        plt.title('Training error over epochs')
+        plt.legend()
+        plt.savefig('ErrorPlot.png')
+        plt.show()
+            
     def backpropagate(self,y,d):
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
@@ -135,10 +163,11 @@ class Model:
 class Layer_Dense:   
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
-    def __init__(self, dim, nodes, activation, rng=np.random.default_rng()):
+    def __init__(self, dim, nodes, activation, l2_s, rng=np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
         self.activation = activation
+        self.l2_s = l2_s
         self.input = None
         self.output = None
     
@@ -161,6 +190,8 @@ def Error(y,d):
 
 def classification_loss(y,d):
     return y-d
+
+ErrorV = np.vectorize(Error)
 
 loss = np.vectorize(classification_loss)
 
@@ -189,9 +220,9 @@ input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
-layer_defines = [[4, act.tanh],
-                 [4, act.tanh],
-                 [1, act.sig]]
+layer_defines = [[4, act.tanh, 0.0],
+                 [4, act.tanh, 0.0],
+                 [1, act.sig, 0.0]]
 
 #Create the model based on the above
 test = Model(input_dim, layer_defines, ann_rng)
@@ -230,9 +261,6 @@ print("Loss before training", answer1)
 print("Loss after training", answer2)
 
 
-#I have modified:
-#train() call
-#train() function
 
 
 
