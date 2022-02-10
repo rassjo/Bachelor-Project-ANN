@@ -26,10 +26,13 @@ class Model:
             X = next_layer_input
         
     
-    def train(self, training, lrn_rate, epochs):
+    def train(self, training, lrn_rate, epochs, minibatchsize=0):
+        if minibatchsize == 0:  #If there is sent no minibatchsize, or if its argument is zero, which it shouldn't be
+            minibatchsize = len(training[0])
+
         history = []
-        N = len(training) #number of patterns
-        for t in range(0, epochs):
+        N = len(training[0]) #number of patterns
+        for t in range(0, epochs): #A added a loop and changed the one below (for going through epochs with minibatches)
             self.weight_updates = [] #Where we store the total weight update
             self.bias_updates = [] #Where we store the total bias update
             for i in range(0,len(self.layers)):
@@ -40,26 +43,47 @@ class Model:
             #We want it in the reverse order because the all_updates we get from
             #the backpropagation will be in the revere order
             self.weight_updates.reverse() ; self.bias_updates.reverse()
+            
+            #These lines randomizes the pattern order
+            assert len(training[0]) == len(training[1]) 
+            p = np.random.permutation(len(training[0])) 
+            training = [training[0][p], training[1][p]]
+            
             #Now get the update for each pattern
-            for n in range(0,len(training[0])):
-                self.feed_forward(training[0][n])
-                #Adding updates for every pattern to the total weight updates
-                all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][n])
+            minibatchstart = 0
+            extra = 0
+            #hi = "yo"
+            for j in range(0,len(training[0])//minibatchsize):
+                count = 0
+                #print(minibatchstart)
+                #print(hi)
+                for k in range(0,minibatchsize+extra):
+                    n = minibatchstart + k
+                    self.feed_forward(training[0][n])
+                    count += 1
+                    #Adding updates for every pattern to the total weight updates
+                    all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][n])
+                    for i in range(0, len(self.layers)):
+                        self.weight_updates[i] += all_w_updates[i]
+                        self.bias_updates[i] += all_b_updates[i]
+                    #Now one minibatch has been made
+                #print(len(training[0]), " ... ", len(training[0])//minibatchsize, " ... ", n)
+                minibatchstart += count
+                if t == len(training[0])//minibatchsize-2: #This makes sure the last minibatch gets any remaining patterns
+                    #hi = "hi"
+                    extra = len(training[0])%minibatchsize #What is left after dividing so all minibatches have same number of patterns
+                    minibatchsize = minibatchsize+extra
+                    
+                #This should be called once all patterns in a minibatch have been used for additive uppdates
+                #Reverse this because weight_updates is reversed
+                self.layers.reverse()
+                #Actually update the weights
                 for i in range(0, len(self.layers)):
-                    self.weight_updates[i] += all_w_updates[i]
-                    self.bias_updates[i] += all_b_updates[i]
-            
-            
-            #This should be called once all patterns have been used in a minibatch
-            #Reverse this because weight_updates is reversed
-            self.layers.reverse()
-            #Actually update the weights
-            for i in range(0, len(self.layers)):
-                self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
-                self.layers[i].biases -= lrn_rate*self.bias_updates[i]/N
-            self.layers.reverse() #Return to original order
-            self.weight_updates = [-lrn_rate*item/N for item in self.weight_updates]
-            self.bias_updates = [-lrn_rate*item/N for item in self.bias_updates]
+                    self.layers[i].weights -= lrn_rate*self.weight_updates[i]/minibatchsize
+                    self.layers[i].biases -= lrn_rate*self.bias_updates[i]/minibatchsize
+                self.layers.reverse() #Return to original order
+                #self.weight_updates = [-lrn_rate*item/minibatchsize for item in self.weight_updates]
+                #self.bias_updates = [-lrn_rate*item/minibatchsize for item in self.bias_updates]
         
     def backpropagate(self,y,d):
         num_layers = len(self.layers) #Count the layers
@@ -143,7 +167,7 @@ loss = np.vectorize(classification_loss)
 #------------------------------------------------------------------------------
 # Create random number generators:
 # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-data_seed = -1
+data_seed = -1 #This doesn't seem to work?
 ann_seed = data_seed
 
 def generate_rng(seed):
@@ -158,7 +182,7 @@ ann_rng = generate_rng(ann_seed)
 
 #-----------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('circle_ception', try_plot=True)    
+trn, val = generate_datasets('baby', try_plot=True)    
 #-----------------------------------------------------------------------------
 
 input_dim = len(trn[0][0]) #Get the input dimension from the training data
@@ -195,7 +219,7 @@ answer1 = check_results(test)
 
 #check_layers(test)
 
-test.train(trn,0.009,50)
+test.train(trn,0.1,2,10) #training, lrn_rate, epochs, minibatchsize=0
 
 #check_layers(test)
 
@@ -204,3 +228,11 @@ answer2 = check_results(test)
 
 print("Loss before training", answer1)
 print("Loss after training", answer2)
+
+
+#I have modified:
+#train() call
+#train() function
+
+
+
