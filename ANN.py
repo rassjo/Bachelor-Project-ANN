@@ -55,8 +55,14 @@ class Model:
             self.layers.reverse()
             #Actually update the weights
             for i in range(0, len(self.layers)):
-                self.layers[i].weights -= lrn_rate*self.weight_updates[i]/N
-                self.layers[i].biases -= lrn_rate*self.bias_updates[i]/N
+                layer = self.layers[i] #Current layer
+                #Update the weights with the result from backpropagation and
+                #the derivative of the L2-term
+                print("L2",layer.l2_s)
+                print("Weights",layer.weights)
+                print("Total",layer.l2_s*layer.weights)
+                layer.weights -= (lrn_rate*self.weight_updates[i]/N + layer.l2_s*layer.weights)
+                layer.biases -= lrn_rate*self.bias_updates[i]/N
             self.layers.reverse() #Return to original order
             self.weight_updates = [-lrn_rate*item/N for item in self.weight_updates]
             self.bias_updates = [-lrn_rate*item/N for item in self.bias_updates]
@@ -111,10 +117,11 @@ class Model:
 class Layer_Dense:   
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
-    def __init__(self, dim, nodes, activation, rng=np.random.default_rng()):
+    def __init__(self, dim, nodes, activation, l2_s, rng=np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
         self.activation = activation
+        self.l2_s = l2_s
         self.input = None
         self.output = None
     
@@ -122,6 +129,7 @@ class Layer_Dense:
     def calc_output(self, X):
         self.input = X
         argument = (np.dot(self.weights, self.input) + self.biases).flatten()
+        print(f"Arguments: {argument}")
         self.output = self.activation['act'](argument)
         #We want to flatten the output to turn it into a 1D array, otherwise
         #it will be a 2D array which causes problems when we want to check
@@ -165,9 +173,9 @@ input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
 #Properties of all the layers
 #Recipe for defining a layer: [number of nodes, activation function]
-layer_defines = [[4, act.tanh],
-                 [4, act.tanh],
-                 [1, act.sig]]
+layer_defines = [[4, act.tanh, 0.1],
+                 [4, act.tanh, 0.1],
+                 [1, act.sig, 0.1]]
 
 #Create the model based on the above
 test = Model(input_dim, layer_defines, ann_rng)
@@ -177,7 +185,7 @@ def check_results(model, show=False):
     N = len(trn[0])
     for n  in range(0,N):
         model.feed_forward(trn[0][n])
-        #print("Pattern", n ," in: ", trn[0][n])
+        print("Pattern", n ," in: ", trn[0][n])
         if show:
             print("Pattern ", n ," out: ", model.layers[-1].output)
             print("Pattern ", n ," targ: ", trn[1][n])
@@ -191,16 +199,16 @@ def check_layers(model):
     print("Biases: ", biases)
 
 #Check results
-answer1 = check_results(test)
+answer1 = check_results(test, True)
 
 #check_layers(test)
 
-test.train(trn,0.009,50)
+test.train(trn,0.01,500)
 
 #check_layers(test)
 
 #Check results again
-answer2 = check_results(test)
+answer2 = check_results(test, True)
 
 print("Loss before training", answer1)
 print("Loss after training", answer2)
