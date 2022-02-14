@@ -2,10 +2,12 @@ import numpy as np
 import activation_functions as act
 import matplotlib.pyplot as plt
 from synthetic_data_generation import *
+import matplotlib.pyplot as plt
 
 #Remember:
 #Weights on the same ROW act on the same node
 #Weights on the same COLUMN come from the same node
+
 
 class Model:
     def __init__(self, input_dim, layer_defines, rng=np.random.default_rng()):
@@ -27,6 +29,7 @@ class Model:
             X = next_layer_input
         
     
+
     def train(self, training, lrn_rate, epochs, minibatchsize=0):
         N = len(training[0]) #number of patterns
         #If minibatchsize is 0 (i.e. default), do regular gradient descent
@@ -122,6 +125,8 @@ class Model:
         # Plot the error over all epochs
         plt.figure()
         plt.plot(np.arange(0,epochs+1), self.history, 'orange', label='Training error')
+
+
         plt.xlabel('Epochs')
         plt.ylabel('Error')
         plt.title('Training error over epochs')
@@ -191,6 +196,7 @@ class Layer_Dense:
     def calc_output(self, X):
         self.input = X
         argument = (np.dot(self.weights, self.input) + self.biases).flatten()
+        print(f"Arguments: {argument}")
         self.output = self.activation['act'](argument)
         #We want to flatten the output to turn it into a 1D array, otherwise
         #it will be a 2D array which causes problems when we want to check
@@ -211,6 +217,9 @@ ErrorV = np.vectorize(Error)
 
 loss = np.vectorize(classification_loss)
 
+ErrorV = np.vectorize(Error)
+
+
 #------------------------------------------------------------------------------
 # Create random number generators:
 # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
@@ -229,15 +238,29 @@ ann_rng = generate_rng(ann_seed)
 
 #-----------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('circle_ception', try_plot=True)    
+trn, val = generate_datasets('baby', try_plot=True)    
 #-----------------------------------------------------------------------------
+
+
+input_dim = len(trn[0][0]) #Get the input dimension from the training data
+
+#Properties of all the layers
+#Recipe for defining a layer: [number of nodes, activation function]
+
+layer_defines = [[4, act.tanh, 0.1],
+                 [4, act.tanh, 0.1],
+                 [1, act.sig, 0.1]]
+
+#Create the model based on the above
+test = Model(input_dim, layer_defines, ann_rng)
+
 
 def check_results(model, show=False):
     loss = 0
     N = len(trn[0])
     for n  in range(0,N):
         model.feed_forward(trn[0][n])
-        #print("Pattern", n ," in: ", trn[0][n])
+        print("Pattern", n ," in: ", trn[0][n])
         if show:
             print("Pattern ", n ," out: ", model.layers[-1].output)
             print("Pattern ", n ," targ: ", trn[1][n])
@@ -261,21 +284,20 @@ layer_defines = [[1, act.tanh, 0.0],
 test = Model(input_dim, layer_defines, ann_rng)
 
 #Check results
-answer1 = check_results(test)
+answer1 = check_results(test, True)
 
 #check_layers(test)
+
 
 test.train(trn,0.2,100,19) #training, lrn_rate, epochs, minibatchsize=0
 
 #check_layers(test)
 
 #Check results again
-answer2 = check_results(test)
+answer2 = check_results(test, True)
 
 print("Loss before training", answer1)
 print("Loss after training", answer2)
-
-
 
 
 
