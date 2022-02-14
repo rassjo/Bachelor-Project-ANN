@@ -57,6 +57,10 @@ class Model:
             
             #Now it's time to go through all of the mini-batches
             for minibatch_nr in range(0,N//fixed_minibatchsize):
+                #This makes sure the last minibatch gets any remaining patterns
+                if minibatch_nr == N//fixed_minibatchsize-1:
+                    minibatchsize += extra
+                
                 #Reset the updates each mini-batch
                 self.weight_updates = [] #Where we store the total weight update
                 self.bias_updates = [] #Where we store the total bias update
@@ -82,10 +86,7 @@ class Model:
                     ylist[n] = float(self.layers[-1].output)
                     n += 1 #Increment the counter when we go to the next pattern
 
-                #This makes sure the last minibatch gets any remaining patterns
-                if minibatch_nr == N//fixed_minibatchsize-2:
-                    minibatchsize += extra
-                
+
                 #Now we have all of the weight updates for the current mini-batch!
                 
                 #Reverse the layers because weight_updates is reversed
@@ -103,7 +104,7 @@ class Model:
                 
             #We already added the loss for epoch 0 to the history, so only do
             #this for epochs 1 and beyond
-            if epoch_nr:
+            if epoch_nr > 0:
                 lossarray=ErrorV(ylist,training[1]) #Calculate the error of each pattern
                 #Calculate the average error of the epoch and append it
                 self.history.append(sum(lossarray)/len(lossarray))
@@ -264,7 +265,7 @@ answer1 = check_results(test)
 
 #check_layers(test)
 
-test.train(trn,0.2,100,40) #training, lrn_rate, epochs, minibatchsize=0
+test.train(trn,0.2,100,19) #training, lrn_rate, epochs, minibatchsize=0
 
 #check_layers(test)
 
