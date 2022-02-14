@@ -264,7 +264,7 @@ answer1 = check_results(test)
 
 #check_layers(test)
 
-test.train(trn,0.2,7,69) #training, lrn_rate, epochs, minibatchsize=0
+test.train(trn,0.2,100,40) #training, lrn_rate, epochs, minibatchsize=0
 
 #check_layers(test)
 
