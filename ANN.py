@@ -160,7 +160,7 @@ ann_rng = generate_rng(ann_seed)
 
 #------------------------------------------------------------------------------
 # Import data
-trn, val = sdg.generate_datasets('circle_intercept', try_plot = True,
+trn, val = sdg.generate_datasets('circle_intercept', try_plot = False,
                                  rng = data_rng)    
 
 #------------------------------------------------------------------------------
