@@ -14,7 +14,8 @@ class Model:
         #Make as many layers as we have defined properties for
         for layer_properties in layer_defines:
             #Create a dense layer
-            self.layers.append(Layer_Dense(columns,*layer_properties))
+            self.layers.append(Layer_Dense(columns,*layer_properties,
+                                           rng = rng))
             #Then we want to know how many columns the weight matrix in the
             #next layer should have, by looking at how many rows (i.e. how the
             #many nodes) the current one has.
@@ -144,7 +145,7 @@ loss = np.vectorize(classification_loss)
 #------------------------------------------------------------------------------
 # Create random number generators:
 # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-data_seed = -1
+data_seed = 5
 ann_seed = data_seed
 
 def generate_rng(seed):
@@ -159,7 +160,8 @@ ann_rng = generate_rng(ann_seed)
 
 #------------------------------------------------------------------------------
 # Import data
-trn, val = sdg.generate_datasets('circle_intercept', try_plot=False)    
+trn, val = sdg.generate_datasets('circle_intercept', try_plot = True,
+                                 rng = data_rng)    
 
 #------------------------------------------------------------------------------
 

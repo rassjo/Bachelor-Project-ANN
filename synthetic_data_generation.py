@@ -213,8 +213,8 @@ def generate_datasets(preset_name, presets_file='data_presets.txt',
     chosen_preset = presets[preset_name]
 
     # Synthesise data
-    x_trn, d_trn = generate_class_data(*chosen_preset)
-    x_val, d_val = generate_class_data(*chosen_preset, val_mul)
+    x_trn, d_trn = generate_class_data(*chosen_preset, rng = rng)
+    x_val, d_val = generate_class_data(*chosen_preset, val_mul, rng = rng)
 
     # Plot data
     if (try_plot):
