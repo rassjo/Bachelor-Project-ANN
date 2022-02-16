@@ -44,7 +44,6 @@ def heatmap(data, title = "Heatmap", xlabel = "X", ylabel = "Y"):
     plt.yticks(np.arange(num_classes))
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.colorbar()
     # Write the value of each cell inside each respective cell
     for i in range(num_classes):
         for j in range(num_classes):
@@ -351,7 +350,7 @@ def class_stats(outputs, targets, data_name = 'training',
     if (should_plot_cm):
         # Plot confusion matrix
         heatmap(confusion_matrix, title = "Confusion matrix " + data_name,
-                xlabel = "Outputs", ylabel = "Targets")
+                xlabel = "Targets", ylabel = "Outputs")
     else:
         # Print confusion matrix
         confusion_matrix_df = pd.DataFrame(confusion_matrix,

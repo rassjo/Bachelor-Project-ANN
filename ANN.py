@@ -235,7 +235,7 @@ loss = np.vectorize(classification_loss)
 #------------------------------------------------------------------------------
 # Create random number generators:
 # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-data_seed = 5
+data_seed = -1
 ann_seed = data_seed
 
 def generate_rng(seed):
@@ -250,7 +250,7 @@ ann_rng = generate_rng(ann_seed)
 
 #------------------------------------------------------------------------------
 # Import data
-trn, val = sdg.generate_datasets('circle_intercept', try_plot = True,
+trn, val = sdg.generate_datasets('circle_ception', try_plot = True,
                                  rng = data_rng)    
 
 #------------------------------------------------------------------------------
@@ -297,10 +297,10 @@ layer_defines = [[10, act.tanh, 0.],
 test = Model(input_dim, layer_defines, ann_rng)
 
 #Check results
-answer1 = check_results(test)
+answer1 = check_results(test, True)
 
 outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
-ts.class_stats(outputs, d_trn, 'pre-training', should_plot_cm = False)
+statistics = ts.class_stats(outputs, d_trn, 'pre-training', should_plot_cm = True)
 
 
 test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
@@ -308,10 +308,10 @@ test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
 #check_layers(test)
 
 #Check results again
-answer2 = check_results(test)
+answer2 = check_results(test, True)
 
 outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
-ts.class_stats(outputs, d_trn, 'post-training', should_plot_cm = False)
+ts.class_stats(outputs, d_trn, 'post-training', should_plot_cm = True)
 
 # Display losses
 print("\nLoss before training", answer1)
