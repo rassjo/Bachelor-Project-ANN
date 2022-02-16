@@ -1,7 +1,8 @@
 import numpy as np
 import activation_functions as act
+import synthetic_data_generation as sdg
+import training_statistics as ts
 import matplotlib.pyplot as plt
-from synthetic_data_generation import *
 
 #Remember:
 #Weights on the same ROW act on the same node
@@ -14,7 +15,8 @@ class Model:
         #Make as many layers as we have defined properties for
         for layer_properties in layer_defines:
             #Create a dense layer
-            self.layers.append(Layer_Dense(columns,*layer_properties))
+            self.layers.append(Layer_Dense(columns,*layer_properties,
+                                           rng = rng))
             #Then we want to know how many columns the weight matrix in the
             #next layer should have, by looking at how many rows (i.e. how the
             #many nodes) the current one has.
@@ -148,7 +150,7 @@ class Model:
         plt.savefig('ErrorPlot.png')
         plt.show()
             
-    def backpropagate(self,y,d):
+    def backpropagate(self, y, d):
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
         #Prepare a place to save all the updates
@@ -216,7 +218,7 @@ class Layer_Dense:
         #the input dimension to set up the next layer.
         return self.output
 
-def Error(y,d):
+def Error(y, d):
     #E = -(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))[0] save for later
     if d == 0:
         return(-np.log(1-y))
@@ -233,7 +235,7 @@ loss = np.vectorize(classification_loss)
 #------------------------------------------------------------------------------
 # Create random number generators:
 # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-data_seed = -1 #This doesn't seem to work?
+data_seed = 5
 ann_seed = data_seed
 
 def generate_rng(seed):
@@ -246,28 +248,43 @@ def generate_rng(seed):
 data_rng = generate_rng(data_seed)
 ann_rng = generate_rng(ann_seed)
 
-#-----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('headache', try_plot=True)    
-#-----------------------------------------------------------------------------
+trn, val = sdg.generate_datasets('circle_intercept', try_plot = True,
+                                 rng = data_rng)    
+
+#------------------------------------------------------------------------------
 
 def check_results(model, show=False):
     loss = 0
     N = len(trn[0])
-    for n  in range(0,N):
+    for n in range(0,N):
         model.feed_forward(trn[0][n])
         #print("Pattern", n ," in: ", trn[0][n])
         if show:
-            print("Pattern ", n ," out: ", model.layers[-1].output)
-            print("Pattern ", n ," targ: ", trn[1][n])
-        loss+=Error(model.layers[-1].output, trn[1][n])
+            print("Pattern", n ,"out:", model.layers[-1].output)
+            print("Pattern", n ,"targ:", trn[1][n])
+        loss += Error(model.layers[-1].output, trn[1][n])
     return loss/N
 
 def check_layers(model):
     weights = [layer.weights for layer in model.layers]
     biases = [layer.biases for layer in model.layers]
-    print("Weights: ", weights)
-    print("Biases: ", biases)
+    print("Weights:", weights)
+    print("Biases:", biases)
+
+def full_feed_forward(model, xs):
+    outputs = []
+    N = len(xs)
+    for n in range(0, N): # feed forward for each pattern
+        model.feed_forward(xs[n])
+        output = model.layers[-1].output
+        outputs.append(output)
+    return(outputs)
+
+# Just use the training for the moment
+x_trn = trn[0]
+d_trn = trn[1]
 
 input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
@@ -282,7 +299,9 @@ test = Model(input_dim, layer_defines, ann_rng)
 #Check results
 answer1 = check_results(test)
 
-#check_layers(test)
+outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
+ts.class_stats(outputs, d_trn, 'pre-training', should_plot_cm = False)
+
 
 test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
 
@@ -291,8 +310,10 @@ test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
 #Check results again
 answer2 = check_results(test)
 
-print("Loss before training", answer1)
+outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
+ts.class_stats(outputs, d_trn, 'post-training', should_plot_cm = False)
+
+# Display losses
+print("\nLoss before training", answer1)
 print("Loss after training", answer2)
-
-
 

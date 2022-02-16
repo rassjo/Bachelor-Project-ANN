@@ -200,20 +200,21 @@ def generate_datasets(preset_name, presets_file='data_presets.txt',
 
     Returns
     -------
-    nested numpy array of floats
-        The generated numpy array of I-dimensional co-ordinates.
-    numpy array of ints or nested numpy array of ints
-        The classifications for each data-point. For binary classifications,
-        each target is an integer 0 or 1. For multi-class classification,
-        the target uses one-hot encoding.
+    two tuples of... 
+        nested numpy array of floats
+            The generated numpy array of I-dimensional co-ordinates.
+        numpy array of ints or nested numpy array of ints
+            The classifications for each data-point. For binary classifications,
+            each target is an integer 0 or 1. For multi-class classification,
+            the target uses one-hot encoding.
     """
     #Load the chosen_preset from the presets_file presets from file
     presets = load_presets(presets_file)
     chosen_preset = presets[preset_name]
 
     # Synthesise data
-    x_trn, d_trn = generate_class_data(*chosen_preset)
-    x_val, d_val = generate_class_data(*chosen_preset, val_mul)
+    x_trn, d_trn = generate_class_data(*chosen_preset, rng = rng)
+    x_val, d_val = generate_class_data(*chosen_preset, val_mul, rng = rng)
 
     # Plot data
     if (try_plot):
