@@ -27,26 +27,39 @@ class Model:
             X = next_layer_input
         
     
-    def train(self, training, lrn_rate, epochs, minibatchsize=0):
-        N = len(training[0]) #number of patterns
+    def train(self, training, validation, lrn_rate, epochs, minibatchsize=0):
+        N = len(training[0]) #number of patterns in training data
+        N_val = len(validation[0]) #number of patterns in validation data
         #If minibatchsize is 0 (i.e. default), do regular gradient descent
         if minibatchsize == 0:
             minibatchsize = N
         fixed_minibatchsize = minibatchsize #Save the true mini-batch size somewhere
+        #Check if the mini-batch size is larger than the total amount of training patterns
+        if minibatchsize > N:
+            raise Exception(f'Your mini-batch size is too large! With the current training data it cannot exceed {N}.')
         #Number of extra patterns to be added onto the final mini-batch
         extra = N%fixed_minibatchsize
         
-        self.history = [] #This is where we will save the loss after each epoch
-        ylist = np.zeros(N) #This is where we save the output after each pattern
+        self.history = {'trn':[],'val':[]} #This is where we will save the loss after each epoch
+        trn_output = np.zeros(N) #This is where we save the output after each training pattern
+        val_output = np.zeros(N_val) #This is where we save the output after each training pattern
         
+        #Get the initial training loss
         for n in range(0,N):
             self.feed_forward(training[0][n]) #Update the network's output...         
-            ylist[n] = float(self.layers[-1].output) #...and save it
-        lossarray=ErrorV(np.array(ylist),training[1]) #Calculate the final loss...
-        self.history.append(sum(lossarray)/len(lossarray)) #...and save it
+            trn_output[n] = float(self.layers[-1].output) #...and save it
+        loss_array=ErrorV(np.array(trn_output),training[1]) #Calculate the total loss...
+        self.history['trn'].append(sum(loss_array)/len(loss_array)) #...and save it
+        
+        #Get the initial validation loss
+        for n in range(0, N_val):
+            self.feed_forward(validation[0][n]) #Update the network's output...
+            val_output[n] = float(self.layers[-1].output) #...and save it
+        loss_array=ErrorV(np.array(val_output),validation[1]) #Calculate the total loss...
+        self.history['val'].append(sum(loss_array)/len(loss_array)) #...and save it
         
         #This loop is for going through the desired amount of epochs
-        for epoch_nr in range(0, epochs):     
+        for epoch_nr in range(0, epochs):
             #These lines randomize the pattern order for each new epoch
             p = np.random.permutation(len(training[0])) 
             training = [training[0][p], training[1][p]]
@@ -83,9 +96,8 @@ class Model:
                         self.weight_updates[i] += all_w_updates[i]
                         self.bias_updates[i] += all_b_updates[i]
                     #Save the output of each pattern for calculating the loss later
-                    ylist[n] = float(self.layers[-1].output)
+                    trn_output[n] = float(self.layers[-1].output)
                     n += 1 #Increment the counter when we go to the next pattern
-
 
                 #Now we have all of the weight updates for the current mini-batch!
                 
@@ -105,9 +117,15 @@ class Model:
             #We already added the loss for epoch 0 to the history, so only do
             #this for epochs 1 and beyond
             if epoch_nr > 0:
-                lossarray=ErrorV(ylist,training[1]) #Calculate the error of each pattern
+                loss_array=ErrorV(trn_output,training[1]) #Calculate the error of each pattern
                 #Calculate the average error of the epoch and append it
-                self.history.append(sum(lossarray)/len(lossarray))
+                self.history['trn'].append(sum(loss_array)/len(loss_array))
+                
+            for n in range(0, N_val):
+                self.feed_forward(validation[0][n]) #Update the network's output...
+                val_output[n] = float(self.layers[-1].output) #...and save it
+            loss_array=ErrorV(np.array(val_output),validation[1]) #Calculate the total loss...
+            self.history['val'].append(sum(loss_array)/len(loss_array)) #...and save it
             
             #Now we start a new epoch!
 
@@ -115,16 +133,17 @@ class Model:
         #the weights further to complete the history list
         for n in range(0,N): #Go through all patterns a final time
             self.feed_forward(training[0][n]) #Update the network's output...         
-            ylist[n] = float(self.layers[-1].output) #...and save it
-        lossarray=ErrorV(np.array(ylist),training[1]) #Calculate the final loss...
-        self.history.append(sum(lossarray)/len(lossarray)) #...and save it
+            trn_output[n] = float(self.layers[-1].output) #...and save it
+        loss_array=ErrorV(np.array(trn_output),training[1]) #Calculate the total loss...
+        self.history['trn'].append(sum(loss_array)/len(loss_array)) #...and save it
         
         # Plot the error over all epochs
         plt.figure()
-        plt.plot(np.arange(0,epochs+1), self.history, 'orange', label='Training error')
+        plt.plot(np.arange(0,epochs+1), self.history['trn'], 'orange', label='Training error')
+        plt.plot(np.arange(0,epochs+1), self.history['val'], 'blue', label='Validation error')
         plt.xlabel('Epochs')
         plt.ylabel('Error')
-        plt.title('Training error over epochs')
+        plt.title('Error over epochs')
         plt.legend()
         plt.savefig('ErrorPlot.png')
         plt.show()
@@ -229,7 +248,7 @@ ann_rng = generate_rng(ann_seed)
 
 #-----------------------------------------------------------------------------
 # Import data
-trn, val = generate_datasets('circle_ception', try_plot=True)    
+trn, val = generate_datasets('headache', try_plot=True)    
 #-----------------------------------------------------------------------------
 
 def check_results(model, show=False):
@@ -253,9 +272,9 @@ def check_layers(model):
 input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
 #Properties of all the layers
-#Recipe for defining a layer: [number of nodes, activation function]
-layer_defines = [[1, act.tanh, 0.0],
-                 [1, act.sig, 0.0]]
+#Recipe for defining a layer: [number of nodes, activation function, L2]
+layer_defines = [[10, act.tanh, 0.],
+                 [1, act.sig, 0.]]
 
 #Create the model based on the above
 test = Model(input_dim, layer_defines, ann_rng)
@@ -265,7 +284,7 @@ answer1 = check_results(test)
 
 #check_layers(test)
 
-test.train(trn,0.2,100,19) #training, lrn_rate, epochs, minibatchsize=0
+test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
 
 #check_layers(test)
 
