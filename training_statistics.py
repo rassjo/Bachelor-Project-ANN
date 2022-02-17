@@ -1,15 +1,14 @@
 """Training Statistics
-
 This script calculates and displays the training statistics by comparing the
 network's output to the desired targets.
 Call the stats_class function with the appropriate parameters to
 quickly get up and running.
-
 Useful resources:
     https://towardsdatascience.com/confusion-matrix-for-your-multi-class-machine-learning-model-ff9aa3bf7826     
-
 WARNING:
-    IF PANDAS ISN'T INSTALLED, THEN JUST COMMENT OUT THE SINGLE LINE THAT USES
+1.  RECENT REARRANGEMENTS HAVE NOT AT ALL BEEN TESTED OR RE-DOCUMENTED, AS MY LAPTOP IS UNWELL.
+
+2.  IF PANDAS ISN'T INSTALLED, THEN JUST COMMENT OUT THE SINGLE LINE THAT USES
     PANDAS DATAFRAME BEFORE PRINTING THE CONFUSION MATRIX.
 """
 import numpy as np
@@ -19,7 +18,6 @@ import pandas as pd
 def heatmap(data, title = "Heatmap", xlabel = "X", ylabel = "Y"):
     """
     Plots heatmap figure and colorbar.
-
     Parameters
     ----------
     data : nested numpy array of ints
@@ -30,13 +28,13 @@ def heatmap(data, title = "Heatmap", xlabel = "X", ylabel = "Y"):
         x-axis label. The default is "X".
     ylabel : str, optional
         y-axis label. The default is "Y".
-
     Returns
     -------
     None.
-
     """
+    # Define oft used properties
     num_classes = len(data)
+    
     plt.figure(figsize = (num_classes, num_classes))
     plt.imshow(data)
     plt.title(title)
@@ -52,14 +50,12 @@ def heatmap(data, title = "Heatmap", xlabel = "X", ylabel = "Y"):
 def fundamental_class_metrics(confusion_matrix, class_num):
     """
     Get the fundamental class metrics from the confusion matrix.
-
     Parameters
     ----------
     confusion_matrix : nested np array
         The confusion matrix from which the metrics are to be determined.
     class_num : int
         The current class index.
-
     Returns
     -------
     tp : float
@@ -99,13 +95,11 @@ def fundamental_class_metrics(confusion_matrix, class_num):
 def calculate_class_metrics(fundamental_class_metrics):
     """
     Calculate the class statistics from the fundamental class metrics.
-
     Parameters
     ----------
     fundamental_class_metrics : np array of floats
         The funamental class metrics; the number of true positives, true
         negatives, false positives and false negatives for this class.
-
     Returns
     -------
     acc : float
@@ -145,7 +139,6 @@ def calculate_class_metrics(fundamental_class_metrics):
 def print_class_calculated_metrics(class_calculated_metrics, indents = 1):
     """
     Print the provided statistics, with indentations.
-
     Parameters
     ----------
     class_calculated_metrics : np array of floats
@@ -153,7 +146,6 @@ def print_class_calculated_metrics(class_calculated_metrics, indents = 1):
     indents : int, optional
         The number of indentations to use on the section title, an extra
         indentation is used on the section contents. The default is 1.
-
     Returns
     -------
     None.
@@ -172,7 +164,6 @@ def print_class_calculated_metrics(class_calculated_metrics, indents = 1):
 def print_class_fundamental_metrics(class_fundamental_metrics, indents = 1):
     """
     Print the provided fundamental metrics, with indentations.
-
     Parameters
     ----------
     class_fundamental_metrics : np array of floats
@@ -180,11 +171,9 @@ def print_class_fundamental_metrics(class_fundamental_metrics, indents = 1):
     indents : int, optional
         The number of indentations to use on the section title, an extra
         indentation is used on the section contents. The default is 1.
-
     Returns
     -------
     None.
-
     """
     tp, tn, fp, fn = class_fundamental_metrics[:]
     
@@ -195,12 +184,11 @@ def print_class_fundamental_metrics(class_fundamental_metrics, indents = 1):
     print('\t'*(indents+1)+'False negatives: ' + str(fn) + ".")
 
 
-def construct_confusion_matrix(outputs, targets, num_classes, is_binary):
+def construct_confusion_matrix(outputs, targets):
     """
     Construct the confusion matrix from outputs and targets. Also contains and
     uses functions for converting float outputs into integer outputs or one-hot
     encoded arrays of integers.
-
     Parameters
     ----------
     outputs : numpy array of floats or nested numpy array of floats
@@ -211,7 +199,6 @@ def construct_confusion_matrix(outputs, targets, num_classes, is_binary):
         The total number of classes.
     is_binary : bool
         Whether or not it is a binary classification problem.
-
     Returns
     -------
     nested numpy array of ints
@@ -259,7 +246,11 @@ def construct_confusion_matrix(outputs, targets, num_classes, is_binary):
         for i in range(0, len(outputs)):
             outputs[i] = 0        
         outputs[hot_index] = 1
-        return(outputs)    
+        return(outputs) 
+    
+    # Define oft used properties
+    num_classes = len(outputs[0]) if len(outputs[0]) > 1 else 2
+    is_binary = num_classes == 2
     
     # Prepare the confusion matrix
     confusion_matrix = np.zeros(shape=(num_classes, num_classes), dtype=int)
@@ -279,14 +270,84 @@ def construct_confusion_matrix(outputs, targets, num_classes, is_binary):
             
     return confusion_matrix
 
+def calculate_stats(confusion_matrix):
+    # Define oft used properties
+    num_classes = len(confusion_matrix)
+    
+    # Prepare arrays for metrics
+    fundamental_metrics = np.zeros((num_classes, 4), dtype = int) # tp, tn, fp,
+                                                            # fn for each class
+    calculated_metrics = np.zeros((num_classes, 6)) # acc, sens (recall), spec,
+                                                    # odds, prec, f1 for each
+                                                    # class
+    
+    # Calculate the metrics and statistics using the confusion matrix
+    for i in range(0, num_classes):
+        fundamental_metrics[i, :] = fundamental_class_metrics(
+            confusion_matrix, i)     
+        calculated_metrics[i, :] = calculate_class_metrics(
+            fundamental_metrics[i])
+        
+    return fundamental_metrics, calculated_metrics
+
+def display_stats(confusion_matrix, fundamental_metrics, calculated_metrics,
+                  data_name, should_plot_cm):
+    # Define oft used properties
+    num_classes = len(confusion_matrix)
+    is_binary = num_classes == 2
+    
+    # Print statistics
+    print('\nStatistics for ' + data_name + ' data:')  
+    
+    # Plot or print confusion matrix
+    if (should_plot_cm):
+        # Plot confusion matrix
+        heatmap(confusion_matrix, title = "Confusion matrix " + data_name,
+                xlabel = "Targets", ylabel = "Outputs")
+    else:
+        # Print confusion matrix
+        confusion_matrix_df = pd.DataFrame(confusion_matrix,
+                                           range(num_classes),
+                                           range(num_classes))   
+        print("\tConfusion matrix: ")
+        print(confusion_matrix_df)
+    
+    # Print metrics
+    indents = 1 # Number of indents, for styling (multi-class requires
+                # extra, as class name is a header)
+    if (is_binary == False):
+        indents = 2
+    for i in range(0, num_classes):
+        if (is_binary == False):
+            print('\tClass ' + str(i) + " :")
+        
+        print_class_fundamental_metrics(fundamental_metrics[i], indents)
+        print_class_calculated_metrics(calculated_metrics[i], indents)
+        
+        if (is_binary):
+            break
+
+def calculate_and_display_stats(confusion_matrix, data_name, should_display = True, should_plot_cm = True):
+    # Define oft used properties
+    num_classes = len(confusion_matrix)
+    
+    # Calculate stats (in: confusion matrix. out: fundamental metrics, calculated metrics)
+    fundamental_metrics, calculated_metrics = calculate_stats(confusion_matrix, num_classes)
+    
+    if (should_display):
+        # Display stats (in: stats. out: none (print))
+        display_stats(confusion_matrix, fundamental_metrics, calculated_metrics, data_name
+                      should_plot_cm)
+        
+    return fundamental_metrics, calculated_metrics
+            
 def class_stats(outputs, targets, data_name = 'training',
-                should_plot_cm = False):
+                should_display = True, should_plot_cm = False):
     """
     Calculates and prints the statistics from the predicted outputs and true
     targets of classification tasks.
     
     WARNING: THIS HAS NOT BEEN TESTED ON MULTI-CLASS CLASSIFICATION DATA.
-
     Parameters
     ----------
     outputs : numpy array of floats or nested numpy array of ints
@@ -298,7 +359,6 @@ def class_stats(outputs, targets, data_name = 'training',
     should_plot_cm : bool, optional
         Whether or not the confusion matrix should be plotted. If False, then
         it is printed instead. The default is False.
-
     Returns
     -------
     np array of floats or nested np array of floats
@@ -319,59 +379,11 @@ def class_stats(outputs, targets, data_name = 'training',
             f1 : float
                 The F1-score is good for imbalanced classes, taking the
                 harmonic mean of precision and sensitivity (recall).
+    """ 
+    # Construct confusion matrix (in: outputs, targets. out: confusion matrix)
+    confusion_matrix = construct_confusion_matrix(outputs, targets)
+    
+    # Calculate and display stats (in: confusion matrix. out: statistics)
+    fundamental_metrics, calculated_metrics = calculate_and_display_stats(confusion_matrix, data_name, should_display, should_plot_cm)
 
-    """      
-    # Define oft used properties as variables
-    num_classes = len(outputs[0]) if len(outputs[0]) > 1 else 2
-    is_binary = num_classes == 2
-    
-    # Construct confusion matrix
-    confusion_matrix = construct_confusion_matrix(outputs, targets,
-                                                  num_classes, is_binary)
-    
-    # Prepare arrays for metrics
-    fundamental_metrics = np.zeros((num_classes, 4), dtype = int) # tp, tn, fp,
-                                                            # fn for each class
-    calculated_metrics = np.zeros((num_classes, 6)) # acc, sens (recall), spec,
-                                                    # odds, prec, f1 for each
-                                                    # class
-    
-    # Calculate the metrics and statistics using the confusion matrix
-    for i in range(0, num_classes):
-        fundamental_metrics[i, :] = fundamental_class_metrics(
-            confusion_matrix, i)     
-        calculated_metrics[i, :] = calculate_class_metrics(
-            fundamental_metrics[i])
-    
-    # Print statistics
-    print('\nStatistics for ' + data_name + ' data:')  
-    
-    # Plot or print confusion matrix
-    if (should_plot_cm):
-        # Plot confusion matrix
-        heatmap(confusion_matrix, title = "Confusion matrix " + data_name,
-                xlabel = "Targets", ylabel = "Outputs")
-    else:
-        # Print confusion matrix
-        confusion_matrix_df = pd.DataFrame(confusion_matrix,
-                                           range(num_classes),
-                                           range(num_classes))   
-        print("\tConfusion matrix: ")
-        print(confusion_matrix_df)
-    
-    # Print metrics
-    indents = 1 # Number of indents, for styling (multi-class requires
-                        # extra, as class name is a header)
-    if (is_binary == False):
-        indents = 2
-    for i in range(0, num_classes):
-        if (is_binary == False):
-            print('\tClass ' + str(i) + " :")
-        
-        print_class_fundamental_metrics(fundamental_metrics[i], indents)
-        print_class_calculated_metrics(calculated_metrics[i], indents)
-        
-        if (is_binary):
-            break
-
-    return calculated_metrics
+    return confusion_matrix
