@@ -5,6 +5,24 @@ import synthetic_data_generation as sdg
 import training_statistics as ts
 import matplotlib.pyplot as plt
 
+def check_results(model, show=False):
+    loss = 0
+    N = len(trn[0])
+    for n in range(0,N):
+        model.feed_forward(trn[0][n])
+        #print("Pattern", n ," in: ", trn[0][n])
+        if show:
+            print("Pattern", n ,"out:", model.layers[-1].output)
+            print("Pattern", n ,"targ:", trn[1][n])
+        loss += ann.Error(model.layers[-1].output, trn[1][n])
+    return loss/N
+
+def check_layers(model):
+    weights = [layer.weights for layer in model.layers]
+    biases = [layer.biases for layer in model.layers]
+    print("Weights:", weights)
+    print("Biases:", biases)
+
 lambdx = []
 #notrainy = []
 trainy = []
@@ -31,8 +49,15 @@ for la in range(0, 10):
     trn, val = sdg.generate_datasets('circle_ception', try_plot = True,
                                      rng = data_rng)    
     input_dim = len(trn[0][0]) #Get the input dimension from the training data
-    #------------------------------------------------------------------------------
-    lambd = 0.002 + la*0.002 #(2 inputs, 200 patterns -> conts*1/100 as size for lambda optimally? (for as good validation performance as possible)) 
+    
+    # Just use the training for the moment
+    x_trn = trn[0]
+    d_trn = trn[1]
+
+    x_val = val[0]
+    d_val = val[1]
+    
+    lambd = 0 + la*0.0025 #(2 inputs, 200 patterns -> conts*1/100 as size for lambda optimally? (for as good validation performance as possible)) 
                     
     print(lambd)
     #Properties of all the layers
@@ -44,13 +69,36 @@ for la in range(0, 10):
 
     test = ann.Model(input_dim, layer_defines, ann_rng)
     
-    #answer1 = check_results(test) #Loss without training
+    #Check results
+    answer1 = check_results(test, False)
+
+    outputs = test.feed_all_patterns(x_trn) # Collect the outputs for all the inputs
+    statistics = ts.class_stats(outputs, d_trn, f'pre-training {lambd}', should_plot_cm = True)
+
+    outputs = test.feed_all_patterns(x_val) # Collect the outputs for all the inputs
+    ts.class_stats(outputs, d_val, f'pre-validation {lambd}', should_plot_cm = True)
     
-    test.train(trn,val,0.1,40) #training, validation, lrn_rate, epochs, minibatchsize=0
+    plt.show()
     
-    answer2 = ann.check_results(test) #Loss after training
+    test.train(trn,val,0.1,40,0) #training, validation, lrn_rate, epochs, minibatchsize=0
+
+    #Check results again
+    answer2 = check_results(test, False)
+
+    outputs = test.feed_all_patterns(x_trn) #Collect the outputs for all the inputs
+    ts.class_stats(outputs, d_trn, f'post-training {lambd}', should_plot_cm = True)
+
+    outputs = test.feed_all_patterns(x_val) #Collect the outputs for all the inputs
+    ts.class_stats(outputs, d_val, f'post-valdation {lambd}', should_plot_cm = True)
+     
+    plt.show()
     
     validation = test.history['val'][-1] #Loss for validation
+    
+    # Display losses
+    print("\nLoss before training", answer1)
+    print("Loss after training", answer2)
+    print("Validation loss", test.history['val'][-1])
     
     lambdx.append(lambd)
     #notrainy.append(answer1)
