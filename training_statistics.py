@@ -44,7 +44,6 @@ def heatmap(data, title = "Heatmap", xlabel = "X", ylabel = "Y"):
     plt.yticks(np.arange(num_classes))
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.colorbar()
     # Write the value of each cell inside each respective cell
     for i in range(num_classes):
         for j in range(num_classes):
@@ -271,7 +270,7 @@ def construct_confusion_matrix(outputs, targets, num_classes, is_binary):
         target = targets[n]
         
         if (is_binary):
-            output = output[0]
+            output = output#[0] uncomment this if we do multi-class ever
             output = binary(output)      
             confusion_matrix[output, target] += 1           
         else:
@@ -323,7 +322,8 @@ def class_stats(outputs, targets, data_name = 'training',
 
     """      
     # Define oft used properties as variables
-    num_classes = len(outputs[0]) if len(outputs[0]) > 1 else 2
+    #num_classes = len(outputs[0]) if len(outputs[0]) > 1 else 2
+    num_classes = 2 #Hard-coded for now, change if we ever do multi-class
     is_binary = num_classes == 2
     
     # Construct confusion matrix
@@ -351,7 +351,7 @@ def class_stats(outputs, targets, data_name = 'training',
     if (should_plot_cm):
         # Plot confusion matrix
         heatmap(confusion_matrix, title = "Confusion matrix " + data_name,
-                xlabel = "Outputs", ylabel = "Targets")
+                xlabel = "Targets", ylabel = "Outputs")
     else:
         # Print confusion matrix
         confusion_matrix_df = pd.DataFrame(confusion_matrix,
