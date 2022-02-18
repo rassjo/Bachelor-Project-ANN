@@ -1,53 +1,29 @@
 """Training Statistics
 This script calculates and displays the training statistics by comparing the
 network's output to the desired targets.
-Call the stats_class function with the appropriate parameters to
+
+Call the stats_class() function with the appropriate parameters to
 quickly get up and running.
+
+Call construct_confusion_matrix() if you want to construct confusion matrices exclusively.
+calculate_stats(), or calculate_and_display_stats() can then be called as desired,
+taking the confusion matrix as arugment.
+
 Useful resources:
     https://towardsdatascience.com/confusion-matrix-for-your-multi-class-machine-learning-model-ff9aa3bf7826     
-WARNING:
-1.  RECENT REARRANGEMENTS HAVE NOT AT ALL BEEN TESTED OR RE-DOCUMENTED, AS MY LAPTOP IS UNWELL.
 
-2.  IF PANDAS ISN'T INSTALLED, THEN JUST COMMENT OUT THE SINGLE LINE THAT USES
+WARNING:
+    Recent changes made to the code have not yet been tested or re-documented.
+
+WARNING:
+    IF PANDAS ISN'T INSTALLED, THEN JUST COMMENT OUT THE SINGLE LINE THAT USES
     PANDAS DATAFRAME BEFORE PRINTING THE CONFUSION MATRIX.
 """
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def heatmap(data, title = "Heatmap", xlabel = "X", ylabel = "Y"):
-    """
-    Plots heatmap figure and colorbar.
-    Parameters
-    ----------
-    data : nested numpy array of ints
-        The grid data to be plotted as a heatmap
-    title : str, optional
-        Title of the figure. The default is "Heatmap".
-    xlabel : str, optional
-        x-axis label. The default is "X".
-    ylabel : str, optional
-        y-axis label. The default is "Y".
-    Returns
-    -------
-    None.
-    """
-    # Define oft used properties
-    num_classes = len(data)
-    
-    plt.figure(figsize = (num_classes, num_classes))
-    plt.imshow(data)
-    plt.title(title)
-    plt.xticks(np.arange(num_classes))
-    plt.yticks(np.arange(num_classes))
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    # Write the value of each cell inside each respective cell
-    for i in range(num_classes):
-        for j in range(num_classes):
-            plt.text(j, i, data[i, j], ha="center", va="center", color="w")        
-
-def fundamental_class_metrics(confusion_matrix, class_num):
+def get_fundamental_class_metrics(confusion_matrix, class_num):
     """
     Get the fundamental class metrics from the confusion matrix.
     Parameters
@@ -89,10 +65,14 @@ def fundamental_class_metrics(confusion_matrix, class_num):
     fn = np.sum(confusion_matrix[:i, i])
     fn += np.sum(confusion_matrix[i+1:, i])
     
-    return tp, tn, fp, fn
+    fundamental_class_metrics = {'tp': tp,
+                                'tn': tn,
+                                'fp': fp,
+                                'fn': fn}
+    
+    return fundamental_class_metrics
 
-
-def calculate_class_metrics(fundamental_class_metrics):
+def get_advanced_class_metrics(fundamental_class_metrics):
     """
     Calculate the class statistics from the fundamental class metrics.
     Parameters
@@ -119,7 +99,11 @@ def calculate_class_metrics(fundamental_class_metrics):
         The F1-score is good for imbalanced classes, taking the
         harmonic mean of precision and sensitivity (recall).
     """
-    tp, tn, fp, fn = fundamental_class_metrics[:]
+    # Unload the dictionary
+    tp, tn, fp, fn = fundamental_class_metrics['tp'],
+    fundamental_class_metrics['tn'],
+    fundamental_class_metrics['fp'],
+    fundamental_class_metrics['fn']
     
     acc = (tp + tn) / (tp + fn + tn + fp) # fraction of correct predictions
     sens = tp / (tp + fn) # fraction of actual positivies that were correctly
@@ -134,34 +118,17 @@ def calculate_class_metrics(fundamental_class_metrics):
     prec = tp / (tp + fp)
     f1 = tp / (tp + 0.5*(fp + fn))
     
-    return acc, sens, spec, odds, prec, f1
+    advanced_class_metrics = {'acc': acc,
+                             'sens': sens,
+                             'spec': spec,
+                             'odds': odds,
+                             'prec': prec,
+                             'f1': f1}
+    
+    return advanced_class_metrics
 
-def print_class_calculated_metrics(class_calculated_metrics, indents = 1):
-    """
-    Print the provided statistics, with indentations.
-    Parameters
-    ----------
-    class_calculated_metrics : np array of floats
-        The statistics to be printed.
-    indents : int, optional
-        The number of indentations to use on the section title, an extra
-        indentation is used on the section contents. The default is 1.
-    Returns
-    -------
-    None.
-    """
-    acc, sens, spec, odds, prec, f1 = class_calculated_metrics[:]
-    
-    print('\t'*indents+'Calculated metrics:')
-    print('\t'*(indents+1)+'Accuracy = ' + str(acc) + ",")
-    print('\t'*(indents+1)+'Sensitivity (recall) = ' + str(sens) + ",")
-    print('\t'*(indents+1)+'Specificity = ' + str(spec) + ",")
-    print('\t'*(indents+1)+'Odds ratio = ' +
-          str(odds if odds != -1 else "div by zero") + ",")
-    print('\t'*(indents+1)+'Precision = ' + str(prec) + ",")
-    print('\t'*(indents+1)+'F1-score = ' + str(f1) + ".")
-    
-def print_class_fundamental_metrics(class_fundamental_metrics, indents = 1):
+
+def print_fundamental_class_metrics(fundamental_class_metrics, indents = 1):
     """
     Print the provided fundamental metrics, with indentations.
     Parameters
@@ -175,7 +142,11 @@ def print_class_fundamental_metrics(class_fundamental_metrics, indents = 1):
     -------
     None.
     """
-    tp, tn, fp, fn = class_fundamental_metrics[:]
+    # Unload the dictionary
+    tp, tn, fp, fn = fundamental_class_metrics['tp'],
+    fundamental_class_metrics['tn'],
+    fundamental_class_metrics['fp'],
+    fundamental_class_metrics['fn']
     
     print('\t'*indents+'Fundamental metrics:')
     print('\t'*(indents+1)+'True positives: ' + str(tp) + ",")
@@ -184,6 +155,74 @@ def print_class_fundamental_metrics(class_fundamental_metrics, indents = 1):
     print('\t'*(indents+1)+'False negatives: ' + str(fn) + ".")
 
 
+def print_advanced_class_metrics(advanced_class_metrics, indents = 1):
+    """
+    Print the provided statistics, with indentations.
+    Parameters
+    ----------
+    class_calculated_metrics : np array of floats
+        The statistics to be printed.
+    indents : int, optional
+        The number of indentations to use on the section title, an extra
+        indentation is used on the section contents. The default is 1.
+    Returns
+    -------
+    None.
+    """
+    # Unload the dictionary
+    acc, sens, spec, odds, prec, f1 = advanced_class_metrics['acc'],
+    advanced_class_metrics['sens'],
+    advanced_class_metrics['spec'],
+    advanced_class_metrics['odds'],
+    advanced_class_metrics['prec'],
+    advanced_class_metrics['f1']
+    
+    print('\t'*indents+'Calculated metrics:')
+    print('\t'*(indents+1)+'Accuracy = ' + str(acc) + ",")
+    print('\t'*(indents+1)+'Sensitivity (recall) = ' + str(sens) + ",")
+    print('\t'*(indents+1)+'Specificity = ' + str(spec) + ",")
+    print('\t'*(indents+1)+'Odds ratio = ' +
+          str(odds if odds != -1 else "div by zero") + ",")
+    print('\t'*(indents+1)+'Precision = ' + str(prec) + ",")
+    print('\t'*(indents+1)+'F1-score = ' + str(f1) + ".")
+
+    
+def heat_map(data, title = "Heatmap", xlabel = "X", ylabel = "Y"):
+    """
+    Plots heatmap figure and colorbar.
+    Parameters
+    ----------
+    data : nested numpy array of ints
+        The grid data to be plotted as a heatmap
+    title : str, optional
+        Title of the figure. The default is "Heatmap".
+    xlabel : str, optional
+        x-axis label. The default is "X".
+    ylabel : str, optional
+        y-axis label. The default is "Y".
+    Returns
+    -------
+    None.
+    """
+    num_classes = len(data)
+    plt.figure(figsize = (num_classes, num_classes))
+    plt.imshow(data, cmap='gray', interpolation='none')
+    color_map_max = np.sum(data) / num_classes
+    plt.clim(0, color_map_max) # Define the range of the colormap
+    plt.title(title)
+    plt.xticks(np.arange(num_classes))
+    plt.yticks(np.arange(num_classes))
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    # Write the value of each cell inside each respective cell
+    for i in range(num_classes):
+        for j in range(num_classes):
+            contrasting_colour = (1, 1, 1)
+            if (data[i, j] > color_map_max / 2):
+                contrasting_colour = (0, 0, 0)
+            plt.text(j, i, data[i, j], ha="center", va="center", color=contrasting_colour)        
+
+    
 def construct_confusion_matrix(outputs, targets):
     """
     Construct the confusion matrix from outputs and targets. Also contains and
@@ -246,10 +285,10 @@ def construct_confusion_matrix(outputs, targets):
         for i in range(0, len(outputs)):
             outputs[i] = 0        
         outputs[hot_index] = 1
-        return(outputs) 
+        return(outputs)    
     
     # Define oft used properties
-    num_classes = len(outputs[0]) if len(outputs[0]) > 1 else 2
+    num_classes = targets.shape[-1]
     is_binary = num_classes == 2
     
     # Prepare the confusion matrix
@@ -261,7 +300,6 @@ def construct_confusion_matrix(outputs, targets):
         target = targets[n]
         
         if (is_binary):
-            output = output[0]
             output = binary(output)      
             confusion_matrix[output, target] += 1           
         else:
@@ -275,22 +313,25 @@ def calculate_stats(confusion_matrix):
     num_classes = len(confusion_matrix)
     
     # Prepare arrays for metrics
-    fundamental_metrics = np.zeros((num_classes, 4), dtype = int) # tp, tn, fp,
-                                                            # fn for each class
-    calculated_metrics = np.zeros((num_classes, 6)) # acc, sens (recall), spec,
-                                                    # odds, prec, f1 for each
-                                                    # class
+    fundamental_metrics = np.zeros(num_classes, dtype = int) # tp, tn, fp,
+                                                             # fn for each class
+    advanced_metrics = np.zeros(num_classes) # acc, sens (recall), spec,
+                                             # odds, prec, f1 for each
+                                             # class
     
     # Calculate the metrics and statistics using the confusion matrix
     for i in range(0, num_classes):
-        fundamental_metrics[i, :] = fundamental_class_metrics(
+        fundamental_metrics[i] = get_fundamental_class_metrics(
             confusion_matrix, i)     
-        calculated_metrics[i, :] = calculate_class_metrics(
+        advanced_metrics[i] = get_advanced_class_metrics(
             fundamental_metrics[i])
-        
-    return fundamental_metrics, calculated_metrics
+    
+    statistics = {'fundamental': fundamental_metrics,
+                 'advanced:' advanced_metrics}
+    
+    return statistics
 
-def display_stats(confusion_matrix, fundamental_metrics, calculated_metrics,
+def display_stats(confusion_matrix, statistics,
                   data_name, should_plot_cm):
     # Define oft used properties
     num_classes = len(confusion_matrix)
@@ -321,28 +362,27 @@ def display_stats(confusion_matrix, fundamental_metrics, calculated_metrics,
         if (is_binary == False):
             print('\tClass ' + str(i) + " :")
         
-        print_class_fundamental_metrics(fundamental_metrics[i], indents)
-        print_class_calculated_metrics(calculated_metrics[i], indents)
+        fundamental_class_metrics = statistics['fundamental'][i]
+        advanced_class_metrics = statistics['advanced'][i]
+        
+        print_fundamental_class_metrics(fundamental_class_metrics, indents)
+        print_advanced_class_metrics(advanced_class_metrics, indents)
         
         if (is_binary):
             break
 
-def calculate_and_display_stats(confusion_matrix, data_name, should_display = True, should_plot_cm = True):
-    # Define oft used properties
-    num_classes = len(confusion_matrix)
+def calculate_and_display_stats(confusion_matrix, data_name, should_plot_cm = True):  
+    # Calculate stats (in: confusion matrix. out: fundamental metrics, advanced metrics)
+    statistics = calculate_stats(confusion_matrix)
     
-    # Calculate stats (in: confusion matrix. out: fundamental metrics, calculated metrics)
-    fundamental_metrics, calculated_metrics = calculate_stats(confusion_matrix, num_classes)
-    
-    if (should_display):
-        # Display stats (in: stats. out: none (print))
-        display_stats(confusion_matrix, fundamental_metrics, calculated_metrics, data_name
-                      should_plot_cm)
+    # Display stats (in: stats. out: none (print and or plot))
+    display_stats(confusion_matrix, statistics, data_name
+                  should_plot_cm)
         
-    return fundamental_metrics, calculated_metrics
-            
-def class_stats(outputs, targets, data_name = 'training',
-                should_display = True, should_plot_cm = False):
+    return statistics
+
+def class_stats(outputs, targets, data_name = '<data-name placeholder>',
+                should_plot_cm = False):
     """
     Calculates and prints the statistics from the predicted outputs and true
     targets of classification tasks.
@@ -378,12 +418,12 @@ def class_stats(outputs, targets, data_name = 'training',
                 Precision is the fraction of correct positives.
             f1 : float
                 The F1-score is good for imbalanced classes, taking the
-                harmonic mean of precision and sensitivity (recall).
-    """ 
+                harmonic mean of precision and sensitivity.
+    """         
     # Construct confusion matrix (in: outputs, targets. out: confusion matrix)
     confusion_matrix = construct_confusion_matrix(outputs, targets)
     
-    # Calculate and display stats (in: confusion matrix. out: statistics)
-    fundamental_metrics, calculated_metrics = calculate_and_display_stats(confusion_matrix, data_name, should_display, should_plot_cm)
-
-    return confusion_matrix
+    # Calculate and display stats (in: confusion matrix. out: fundamental metrics, advanced metrics (also print and or plot))
+    statistics = calculate_and_display_stats(confusion_matrix, data_name, should_plot_cm)
+    
+    return statistics
