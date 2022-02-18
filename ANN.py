@@ -258,7 +258,7 @@ ann_rng = generate_rng(ann_seed)
 
 #------------------------------------------------------------------------------
 # Import data
-trn, val = sdg.generate_datasets('circle_ception', try_plot = True,
+trn, val = sdg.generate_datasets('headache', try_plot = True,
                                  rng = data_rng)    
 
 #------------------------------------------------------------------------------
@@ -280,15 +280,6 @@ def check_layers(model):
     biases = [layer.biases for layer in model.layers]
     print("Weights:", weights)
     print("Biases:", biases)
-
-def full_feed_forward(model, xs):
-    outputs = []
-    N = len(xs)
-    for n in range(0, N): # feed forward for each pattern
-        model.feed_forward(xs[n])
-        output = model.layers[-1].output
-        outputs.append(output)
-    return(outputs)
 
 # Just use the training for the moment
 x_trn = trn[0]
@@ -318,10 +309,10 @@ answer1 = check_results(test, False)
 #something with the multi-class stuff in Joe's spaghetti code broke so we'll
 #have to sort this out together. Until then I am forced to leave this as is.
 
-outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
+outputs = test.feed_all_patterns(x_trn) # Collect the outputs for all the inputs
 statistics = ts.class_stats(outputs, d_trn, 'pre-training', should_plot_cm = True)
 
-outputs = full_feed_forward(test, x_val) # Collect the outputs for all the inputs
+outputs = test.feed_all_patterns(x_val) # Collect the outputs for all the inputs
 ts.class_stats(outputs, d_val, 'pre-validation', should_plot_cm = True)
 
 test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
@@ -331,10 +322,10 @@ test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
 #Check results again
 answer2 = check_results(test, False)
 
-outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
+outputs = test.feed_all_patterns(x_trn) #Collect the outputs for all the inputs
 ts.class_stats(outputs, d_trn, 'post-training', should_plot_cm = True)
 
-outputs = full_feed_forward(test, x_val) # Collect the outputs for all the inputs
+outputs = test.feed_all_patterns(x_val) #Collect the outputs for all the inputs
 ts.class_stats(outputs, d_val, 'post-valdation', should_plot_cm = True)
 
 # Display losses
