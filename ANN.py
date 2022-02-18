@@ -27,7 +27,7 @@ class Model:
             layer.input = X
             next_layer_input = layer.calc_output(X)
             X = next_layer_input
-            
+        
     def feed_all_patterns(self, patterns):
         outputs = []
         for pattern in patterns:
@@ -202,12 +202,15 @@ class Model:
         
         self.show_history(epochs) #This will generate the "loss plot"
         
+
 class Layer_Dense:   
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
     def __init__(self, dim, nodes, activation, l2_s, rng=np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
+        self.w_size = self.weights.shape
+        self.b_size = self.biases.shape
         self.activation = activation
         self.l2_s = l2_s
         self.input = None
@@ -281,6 +284,7 @@ def check_layers(model):
 # Just use the training for the moment
 x_trn = trn[0]
 d_trn = trn[1]
+
 x_val = val[0]
 d_val = val[1]
 
@@ -298,6 +302,7 @@ test = Model(input_dim, layer_defines, ann_rng)
 
 #Check results
 answer1 = check_results(test, False)
+
 
 #ATTENTION!!!
 #I tried to replace full_feed_forward with the new feed_all_patterns, but then
