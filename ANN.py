@@ -1,7 +1,7 @@
 import numpy as np
 import activation_functions as act
 import synthetic_data_generation as sdg
-import training_statistics as ts
+import classification_statistics as cs
 import matplotlib.pyplot as plt
 
 #Remember:
@@ -300,7 +300,7 @@ test = Model(input_dim, layer_defines, ann_rng)
 answer1 = check_results(test, True)
 
 outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
-statistics = ts.class_stats(outputs, d_trn, 'pre-training', should_plot_cm = True)
+statistics = cs.stats(outputs, d_trn, 'pre-training', should_plot_cm=True)
 
 
 test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
@@ -311,7 +311,7 @@ test.train(trn,val,0.1,40) #training, lrn_rate, epochs, minibatchsize=0
 answer2 = check_results(test, True)
 
 outputs = full_feed_forward(test, x_trn) # Collect the outputs for all the inputs
-ts.class_stats(outputs, d_trn, 'post-training', should_plot_cm = True)
+cs.stats(outputs, d_trn, 'post-training', should_plot_cm=True)
 
 # Display losses
 print("\nLoss before training", answer1)
