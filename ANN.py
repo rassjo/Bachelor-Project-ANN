@@ -1,7 +1,7 @@
 import numpy as np
 import activation_functions as act
 import synthetic_data_generation as sdg
-import training_statistics as ts
+import classification_statistics as cs
 import matplotlib.pyplot as plt
 
 #Remember:
@@ -21,20 +21,20 @@ class Model:
             #next layer should have, by looking at how many rows (i.e. how the
             #many nodes) the current one has.
             columns = self.layers[-1].weights.shape[0]
-    
+
     def feed_forward(self, X):
         for layer in self.layers:
             layer.input = X
             next_layer_input = layer.calc_output(X)
             X = next_layer_input
-        
+
     def feed_all_patterns(self, patterns):
         outputs = []
         for pattern in patterns:
-            self.feed_forward(pattern) #Update the network's output...         
+            self.feed_forward(pattern) #Update the network's output...
             outputs.append(float(self.layers[-1].output)) #...and save it
         return np.array(outputs)
-    
+
     def backpropagate(self, y, d):
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
@@ -80,12 +80,12 @@ class Model:
         #When we are done return the list of all layers to it's original state
         self.layers.reverse()
         return all_w_updates, all_b_updates
-    
+
     def update_weights(self,training,minibatchsize,lrn_rate):
         #We want it in the reverse order because the all_updates we get from
         #the backpropagation will be in the reverse order
         self.weight_updates.reverse() ; self.bias_updates.reverse()
-        
+
         #Now go through each pattern in the mini-batch
         for _pattern in range(0,minibatchsize):
             #Find the network's output for the pattern
@@ -100,7 +100,7 @@ class Model:
             self.n += 1 #Increment the counter when we go to the next pattern
 
         #Now we have all of the weight updates for the current mini-batch!
-        
+
         #Reverse the layers because weight_updates is reversed
         self.layers.reverse()
         #Actually update the weights
@@ -111,7 +111,7 @@ class Model:
           layer.weights -= (lrn_rate*self.weight_updates[i]/minibatchsize + layer.l2_s*layer.weights)
           layer.biases -= lrn_rate*self.bias_updates[i]/minibatchsize
         self.layers.reverse() #Return to original order
-    
+
     def show_history(self,epochs):
         # Plot the error over all epochs
         plt.figure()
@@ -123,7 +123,7 @@ class Model:
         plt.legend()
         plt.savefig('ErrorPlot.png')
         plt.show()
-    
+
     def train(self, training, validation, lrn_rate, epochs, minibatchsize=0):
         N = len(training[0]) #number of patterns in training data
         N_val = len(validation[0]) #number of patterns in validation data
@@ -134,33 +134,33 @@ class Model:
         #Check if the mini-batch size is larger than the total amount of training patterns
         if minibatchsize > N:
             raise Exception(f'Your mini-batch size is too large! With the current training data it cannot exceed {N}.')
-            
+
         #Number of extra patterns to be added onto the final mini-batch
         extra = N%fixed_minibatchsize
-        
+
         self.history = {'trn':[],'val':[]} #This is where we will save the loss after each epoch
-        
+
         #Get the initial training loss
         self.trn_output = self.feed_all_patterns(training[0])
         loss_array=ErrorV(np.array(self.trn_output),training[1])
         self.history['trn'].append(sum(loss_array)/N)
-        
+
         #Get the initial validation loss
         self.val_output = self.feed_all_patterns(validation[0])
         loss_array=ErrorV(np.array(self.val_output),validation[1])
         self.history['val'].append(sum(loss_array)/N_val)
-        
+
         #This loop is for going through the desired amount of epochs
         for epoch_nr in range(0, epochs):
             #This is where we save results after each training pattern
             self.trn_output = np.zeros(N)
             self.n = 0 #This will keep track of which pattern we are at during the epoch
             #These lines randomize the pattern order for each new epoch
-            p = np.random.permutation(len(training[0])) 
+            p = np.random.permutation(len(training[0]))
             training = [training[0][p], training[1][p]]
             #Restore the mini-batch size to the original value
             minibatchsize = fixed_minibatchsize
-            
+
             #Now it's time to go through all of the mini-batches
             for minibatch_nr in range(0,N//fixed_minibatchsize):
                 #This makes sure the last minibatch gets any remaining patterns
@@ -172,7 +172,7 @@ class Model:
                 self.bias_updates = [np.zeros(layer.b_size) for layer in self.layers]
                 #Now it's time to update the weights!
                 self.update_weights(training,minibatchsize,lrn_rate)
-                
+
             #We already added the loss for epoch 0 to the history, so only do
             #this for epochs 1 and beyond. Values for trn_output are added
             #in the update_weights() method to save calculation time
@@ -185,7 +185,7 @@ class Model:
             loss_array=ErrorV(np.array(self.val_output),validation[1])
             #Calculate the average validaiton loss of the epoch and save it
             self.history['val'].append(sum(loss_array)/len(loss_array))
-            
+
             #Now we start a new epoch!
 
         #Calculate the error after the final weight update without updating
@@ -194,16 +194,16 @@ class Model:
         loss_array=ErrorV(np.array(self.trn_output),training[1])
         #Calculate the average training loss of the epoch and save it
         self.history['trn'].append(sum(loss_array)/len(loss_array))
-        
+
         #Note that when we calculate the loss for the validation data we
         #actually do it after the weights have been updated for the epoch!
         #Therefore, we DON'T need an extra run through all patterns once
         #we have gone through all epochs like we do for the training data!
-        
-        self.show_history(epochs) #This will generate the "loss plot"
-        
 
-class Layer_Dense:   
+        self.show_history(epochs) #This will generate the "loss plot"
+
+
+class Layer_Dense:
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
     def __init__(self, dim, nodes, activation, l2_s, rng=np.random.default_rng()):
@@ -215,7 +215,7 @@ class Layer_Dense:
         self.l2_s = l2_s
         self.input = None
         self.output = None
-    
+
     #Calculate the output of the layer
     def calc_output(self, X):
         self.input = X
@@ -239,4 +239,3 @@ def classification_loss(y,d):
 ErrorV = np.vectorize(Error)
 
 loss = np.vectorize(classification_loss)
-
