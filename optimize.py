@@ -23,14 +23,20 @@ def check_layers(model):
     print("Weights:", weights)
     print("Biases:", biases)
 
+start_la = 0
+final_la = 0.1
+number_to_try = 3
 
+extra_patterns = 0
+
+lambda_x = np.linspace(start_la,final_la,number_to_try)
 nHidden = []
 bestLambd = []
+
 for hid in range(1,10): #range for the numbers of hidden nodes we want to try
-    lambdx = []
     trainy = []
     valy = []
-    for la in range(0, 10): #number of lambdas we want to test for each number of hidden nodes
+    for lambd in lambda_x: #number of lambdas we want to test for each number of hidden nodes
         #------------------------------------------------------------------------------
         # Create random number generators:
         # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
@@ -49,8 +55,11 @@ for hid in range(1,10): #range for the numbers of hidden nodes we want to try
     
         #------------------------------------------------------------------------------
         # Import data
-        trn, val = sdg.generate_datasets('circle_ception', try_plot = True,
-                                         rng = data_rng)
+        trn, val = sdg.generate_datasets('lagom',
+                                     extra = extra_patterns,
+                                     val_mul = 10,
+                                     try_plot = True,
+                                     rng = data_rng)
         input_dim = len(trn[0][0]) #Get the input dimension from the training data
     
         # Just use the training for the moment
@@ -59,8 +68,6 @@ for hid in range(1,10): #range for the numbers of hidden nodes we want to try
     
         x_val = val[0]
         d_val = val[1]
-    
-        lambd = 0 + la*0.0025 #(2 inputs, 200 patterns -> conts*1/100 as size for lambda optimally? (for as good validation performance as possible)) 
     
         print(lambd)
         #Properties of all the layers
@@ -100,26 +107,27 @@ for hid in range(1,10): #range for the numbers of hidden nodes we want to try
         print("\nLoss before training", answer1)
         print("Loss after training", answer2)
         print("Validation loss", test.history['val'][-1])
-    
-        lambdx.append(lambd)
+        
         trainy.append(answer2)
         valy.append(validation)
+        
+        extra_patterns += 0
     
     #Appending the number of hidden nodes and best lambda for that number of nodes, to be plotted later
     nHidden.append(hid)
 
     #I'm appending the lambda that gives the lowest validation-, and not training-, loss, as that would be zero
-    bestLambd.append(lambdx[valy.index(min(valy))]) 
+    bestLambd.append(lambda_x[valy.index(min(valy))]) 
     
     #The loss for each lambda is plotted once for every new number of hidden nodes
     plt.figure()
-    plt.plot(lambdx, trainy, 'go', label='error after train vs lambd')
-    plt.plot(lambdx, valy, 'bo', label='Validation error vs lambd')
+    plt.plot(lambda_x, trainy, 'go', label='error after train vs lambd')
+    plt.plot(lambda_x, valy, 'bo', label='Validation error vs lambd')
     plt.xlabel('lambdas')
     plt.ylabel('Error')
     plt.title('Error over lambdas')
     plt.legend()
-    plt.savefig('ErrorPlot.png')
+    #plt.savefig('ErrorPlot.png')
     plt.show()
 
 #The best lambda for each number of hidden nodes is plotted
@@ -129,7 +137,7 @@ plt.xlabel('# hidden nodes')
 plt.ylabel('best lambdas')
 plt.title('best lambdas vs # hidden nodes (1 layer)')
 plt.legend()
-plt.savefig('LambdaPlot.png')
+#plt.savefig('LambdaPlot.png')
 plt.show()
 
 
