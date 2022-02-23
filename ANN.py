@@ -121,7 +121,7 @@ class Model:
         plt.ylabel('Error')
         plt.title('Error over epochs')
         plt.legend()
-        plt.savefig('ErrorPlot.png')
+        #plt.savefig('ErrorPlot.png')
         plt.show()
 
     def train(self, training, validation, lrn_rate, epochs, minibatchsize=0):

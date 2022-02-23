@@ -23,15 +23,21 @@ def check_layers(model):
     print("Weights:", weights)
     print("Biases:", biases)
 
-lambdx = []
-#notrainy = []
-trainy = []
-valy = []
-for la in range(0, 10):
+start_la = 0
+final_la = 0.1
+number_to_try = 3
+
+extra_patterns = 0
+
+lambda_x = np.linspace(start_la,final_la,number_to_try)
+train_y = []
+val_y = []
+
+for la in lambda_x:
     #------------------------------------------------------------------------------
     # Create random number generators:
     # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-    data_seed = 5
+    data_seed = -1
     ann_seed = data_seed
 
     def generate_rng(seed):
@@ -46,7 +52,10 @@ for la in range(0, 10):
 
     #------------------------------------------------------------------------------
     # Import data
-    trn, val = sdg.generate_datasets('circle_ception', try_plot = True,
+    trn, val = sdg.generate_datasets('lagom',
+                                     extra = extra_patterns,
+                                     val_mul = 10,
+                                     try_plot = True,
                                      rng = data_rng)
     input_dim = len(trn[0][0]) #Get the input dimension from the training data
 
@@ -57,14 +66,12 @@ for la in range(0, 10):
     x_val = val[0]
     d_val = val[1]
 
-    lambd = 0 + la*0.0025 #(2 inputs, 200 patterns -> conts*1/100 as size for lambda optimally? (for as good validation performance as possible)) 
+    lambd = 0 #(2 inputs, 200 patterns -> conts*1/100 as size for lambda optimally? (for as good validation performance as possible)) 
 
     print(lambd)
     #Properties of all the layers
     #Recipe for defining a layer: [number of nodes, activation function, L2]
     layer_defines = [[20, act.tanh, lambd],
-                     [20, act.tanh, lambd],
-                     [20, act.tanh, lambd],
                      [1, act.sig, lambd]]
 
     test = ann.Model(input_dim, layer_defines, ann_rng)
@@ -80,7 +87,7 @@ for la in range(0, 10):
 
     plt.show()
 
-    test.train(trn,val,0.1,40,0) #training, validation, lrn_rate, epochs, minibatchsize=0
+    test.train(trn,val,0.1,200,0) #training, validation, lrn_rate, epochs, minibatchsize=0
 
     #Check results again
     answer2 = check_results(test, False)
@@ -100,18 +107,18 @@ for la in range(0, 10):
     print("Loss after training", answer2)
     print("Validation loss", test.history['val'][-1])
 
-    lambdx.append(lambd)
-    #notrainy.append(answer1)
-    trainy.append(answer2)
-    valy.append(validation)
+    train_y.append(answer2)
+    val_y.append(validation)
+    
+    extra_patterns += 0
 
 plt.figure()
 #plt.plot(lambdx, notrainy, 'ro', label='error before train vs lambd') #consider using (x,y,linestyle = 'none',marker = '.',markersize= 0.1)
-plt.plot(lambdx, trainy, 'go', label='error after train vs lambd')
-plt.plot(lambdx, valy, 'bo', label='Validation error vs lambd')
+plt.plot(lambda_x, train_y, 'go', label='error after train vs lambd')
+plt.plot(lambda_x, val_y, 'bo', label='Validation error vs lambd')
 plt.xlabel('lambdas')
 plt.ylabel('Error')
 plt.title('Error over lambdas')
 plt.legend()
-plt.savefig('ErrorPlot.png')
+#plt.savefig('ErrorPlot.png')
 plt.show()
