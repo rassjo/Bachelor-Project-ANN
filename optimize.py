@@ -36,6 +36,7 @@ bestLambd = []
 for hid in range(18,21): #range for the numbers of hidden nodes we want to try
     trainy = []
     valy = []
+    lambd_to_cms = {}
     for lambd in lambda_x: #number of lambdas we want to test for each number of hidden nodes
         #------------------------------------------------------------------------------
         # Create random number generators:
@@ -58,7 +59,7 @@ for hid in range(18,21): #range for the numbers of hidden nodes we want to try
         trn, val = sdg.generate_datasets('lagom',
                                      extra = extra_patterns,
                                      val_mul = 10,
-                                     try_plot = True,
+                                     try_plot = False,
                                      rng = data_rng)
         input_dim = len(trn[0][0]) #Get the input dimension from the training data
     
@@ -81,12 +82,7 @@ for hid in range(18,21): #range for the numbers of hidden nodes we want to try
         answer1 = check_results(test, False)
     
         outputs = test.feed_all_patterns(x_trn) # Collect the outputs for all the inputs
-        statistics = cs.stats(outputs, d_trn, f'pre-training {lambd}', should_plot_cm = True)
-    
         outputs = test.feed_all_patterns(x_val) # Collect the outputs for all the inputs
-        cs.stats(outputs, d_val, f'pre-validation {lambd}', should_plot_cm = True)
-    
-        plt.show()
     
         test.train(trn,val,0.1,400,0) #training, validation, lrn_rate, epochs, minibatchsize=0
     
@@ -94,12 +90,16 @@ for hid in range(18,21): #range for the numbers of hidden nodes we want to try
         answer2 = check_results(test, False)
     
         outputs = test.feed_all_patterns(x_trn) #Collect the outputs for all the inputs
-        cs.stats(outputs, d_trn, f'post-training {lambd}', should_plot_cm = True)
-    
+
+        # Saving confusion matrix for later
+        cm_trn = cs.construct_confusion_matrix(outputs, d_trn)
+
         outputs = test.feed_all_patterns(x_val) #Collect the outputs for all the inputs
-        cs.stats(outputs, d_val, f'post-valdation {lambd}', should_plot_cm = True)
-    
-        plt.show()
+
+        # Saving confusion matrix for later
+        cm_val = cs.construct_confusion_matrix(outputs, d_val)
+
+        lambd_to_cms[lambd] = {"trn": cm_trn, "val": cm_val}
     
         validation = test.history['val'][-1] #Loss for validation
     
@@ -110,7 +110,7 @@ for hid in range(18,21): #range for the numbers of hidden nodes we want to try
         
         trainy.append(answer2)
         valy.append(validation)
-        
+
         extra_patterns += 0
     
     #Appending the number of hidden nodes and best lambda for that number of nodes, to be plotted later
@@ -128,6 +128,27 @@ for hid in range(18,21): #range for the numbers of hidden nodes we want to try
     plt.title('Error over lambdas')
     plt.legend()
     plt.savefig(f'LambdaPlot_{hid}.png')
+    plt.show()
+
+    # Construct a list of training and validation accuracies from the
+    # lambd_to_cms dictionary
+    acc_trn = []
+    acc_val = []
+    for lambd in lambda_x:
+        stats_trn = cs.calculate_stats(lambd_to_cms[lambd]["trn"])
+        acc_trn.append(stats_trn[0]["advanced"]["acc"])
+        stats_val = cs.calculate_stats(lambd_to_cms[lambd]["val"])
+        acc_val.append(stats_val[0]["advanced"]["acc"])
+
+    # Plot the accuracy over lambda plot
+    plt.figure()
+    plt.plot(lambda_x, acc_trn, 'go', label='Training')
+    plt.plot(lambda_x, acc_val, 'bo', label='Validation')
+    plt.xlabel('$\lambda$')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy over ' + '$\lambda$')
+    plt.legend()
+    plt.savefig(f'lambda_accuracy_plot_{hid}.png')
     plt.show()
 
 #The best lambda for each number of hidden nodes is plotted
