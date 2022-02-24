@@ -208,7 +208,7 @@ def standardise(x_trn, x_val=None):
     return x_trn, x_val
 
 
-def generate_datasets(preset_name, presets_file='data_presets.txt',
+def generate_datasets(preset_name, presets_file='data_presets.txt', extra = 0,
                       val_mul = 1, try_plot = False,
                       rng=np.random.default_rng()):
     """
@@ -223,6 +223,13 @@ def generate_datasets(preset_name, presets_file='data_presets.txt',
     presets_file : str
         Path to the text file to loads the presets from. Default is
         data_presets.txt.
+    extra : int
+        The number of extra patterns, beyond what is defined in the text file,
+        to add to each distribution. Only necessary to use if several different
+        models are to be trained on a different amount of patterns and then
+        compared, such that there is a need to dynamically alter the number of
+        patterns.
+        Default is 0.
     val_mul : int
         The relative size (in members) of the validation data-set, with respect
         to the (training data-set). Set val_mul = 0 for no validation data-set.
@@ -247,10 +254,16 @@ def generate_datasets(preset_name, presets_file='data_presets.txt',
     presets = load_presets(presets_file)
     chosen_preset = presets[preset_name]
 
-    # Synthesise data
-    x_trn, d_trn, ids_to_targets = generate_class_data(*chosen_preset, rng=rng)
-    x_val, d_val, __ = generate_class_data(*chosen_preset, val_mul, rng=rng)
-
+    # Synthesise validation data
+    x_val, d_val, ids_to_targets = generate_class_data(*chosen_preset, val_mul, rng = rng)
+    
+    #Add any extra patterns to each distribution in the training data
+    if extra:
+        chosen_preset[1] += extra
+    
+    # Synthesise training data
+    x_trn, d_trn, __ = generate_class_data(*chosen_preset, rng = rng)
+    
     # Reverse the ids_to_targets dictionary, for plotting labels
     # (Using .tobytes() as dictionaries cannot have arrays for keys)
     targets_to_ids = {targets.tobytes(): ids for ids, targets in
