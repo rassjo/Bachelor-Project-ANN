@@ -372,6 +372,3 @@ def plot_data(x, d, data_name='generic', targets_to_ids=None):
     """
 
     plt.show()
-
-
-generate_datasets('uni-brow', try_plot=True)
