@@ -26,7 +26,7 @@ def check_layers(model):
 #For lambda
 start_la = 0
 final_la = 0.01
-number_to_try = 50
+number_to_try = 30
 
 #For patterns
 numPatterns = 10 #how many times we make a new number of patterns
@@ -34,7 +34,7 @@ patternStepSize = 40
 
 #For the model
 learnRate = 0.1
-epochs = 1000
+epochs = 700
 minibatchsize = 0 #0 if we don't want to use minibatches
 
 lambda_x = np.linspace(start_la,final_la,number_to_try)
@@ -69,7 +69,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         trn, val = sdg.generate_datasets('lagom',
                                      extra = extra_patterns,
                                      val_mul = 10,
-                                     try_plot = True,
+                                     try_plot = False,
                                      rng = data_rng)
         input_dim = len(trn[0][0]) #Get the input dimension from the training data
     
@@ -121,7 +121,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         
         lambd_to_cms[lambd] = {"trn": cm_trn, "val": cm_val}
         
-    
+
     #Appending the number of patterns nodes and best lambda for that number of nodes, to be plotted later
     nPatterns.append(extra_patterns+len(trn[0]))
     
@@ -136,7 +136,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     plt.ylabel('Error')
     plt.title(f'Error over lambdas for {extra_patterns} extra patterns')
     plt.legend()
-    plt.savefig(f'LambdaPlot_{extra_patterns}_extra_patterns.png')
+    plt.savefig(f'error_lambda_plot_{extra_patterns}_hns.png')
     plt.show()
     
     # Construct a list of training and validation accuracies from the lambd_to_cms dictionary
@@ -151,12 +151,12 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     # Plot the accuracy over lambda plot
     plt.figure()
     plt.plot(lambda_x, acc_trn, "go", label="Training")
-    plt.plot(lambda_x, acc_val, "go", label="Validation")
+    plt.plot(lambda_x, acc_val, "bo", label="Validation")
     plt.xlabel("$\lambda$")
     plt.ylabel("Accuracy")
     plt.title("Accuracy over " + "$\lambda$")
     plt.legend()
-    plt.savefig(f'lambda_accuracy_plot_{hid}.png')
+    plt.savefig(f'accuracy_lambda_plot_{extra_patterns}_hns.png')
     plt.show()
 
 ##The best lambda for each number of patterns is plotted
@@ -166,5 +166,5 @@ plt.xlabel('# patterns')
 plt.ylabel('best lambdas')
 plt.title('best lambdas vs # patterns')
 plt.legend()
-plt.savefig('HyperparameterPlot.png')
+plt.savefig('patterns_lambda_plot.png')
 plt.show()

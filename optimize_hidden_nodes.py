@@ -26,7 +26,7 @@ def check_layers(model):
 #For lambda
 start_la = 0
 final_la = 0.01
-number_to_try = 50
+number_to_try = 30
 
 #For number of hidden nodes, stepsize is currently 1
 startNumberHidden = 10
@@ -34,7 +34,7 @@ endNumberHidden = 30
 
 #For the model
 learnRate = 0.1
-epochs = 1000
+epochs = 700
 minibatchsize = 0 #0 if we don't want to use minibatches
 
 extra_patterns = 0
@@ -68,7 +68,7 @@ for hid in range(startNumberHidden,endNumberHidden+1): #range for the numbers of
         trn, val = sdg.generate_datasets('lagom',
                                      extra = extra_patterns,
                                      val_mul = 10,
-                                     try_plot = True,
+                                     try_plot = False,
                                      rng = data_rng)
         input_dim = len(trn[0][0]) #Get the input dimension from the training data
     
@@ -134,7 +134,7 @@ for hid in range(startNumberHidden,endNumberHidden+1): #range for the numbers of
     plt.ylabel('Error')
     plt.title('Error over lambdas')
     plt.legend()
-    plt.savefig(f'LambdaPlot_{hid}_hidden_nodes.png')
+    plt.savefig(f'error_lambda_plot_{hid}_hns.png')
     plt.show()
     
     # Construct a list of training and validation accuracies from the lambd_to_cms dictionary
@@ -149,12 +149,12 @@ for hid in range(startNumberHidden,endNumberHidden+1): #range for the numbers of
     # Plot the accuracy over lambda plot
     plt.figure()
     plt.plot(lambda_x, acc_trn, "go", label="Training")
-    plt.plot(lambda_x, acc_val, "go", label="Validation")
+    plt.plot(lambda_x, acc_val, "bo", label="Validation")
     plt.xlabel("$\lambda$")
     plt.ylabel("Accuracy")
     plt.title("Accuracy over " + "$\lambda$")
     plt.legend()
-    plt.savefig(f'lambda_accuracy_plot_{hid}.png')
+    plt.savefig(f'accuracy_lambda_plot_{hid}_hns.png')
     plt.show()
 
 #The best lambda for each number of hidden nodes is plotted
@@ -164,7 +164,7 @@ plt.xlabel('# hidden nodes')
 plt.ylabel('best lambdas')
 plt.title('best lambdas vs # hidden nodes (1 layer)')
 plt.legend()
-plt.savefig('HyperparameterPlot.png')
+plt.savefig('hns_lambdas_plot.png')
 plt.show()
 
 
