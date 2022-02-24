@@ -24,7 +24,7 @@ def check_layers(model):
     print("Biases:", biases)
 
 start_la = 0
-final_la = 0.1
+final_la = 0.004
 number_to_try = 3
 
 extra_patterns = 0
@@ -33,14 +33,14 @@ lambda_x = np.linspace(start_la,final_la,number_to_try)
 nHidden = []
 bestLambd = []
 
-for hid in range(1,10): #range for the numbers of hidden nodes we want to try
+for hid in range(18,21): #range for the numbers of hidden nodes we want to try
     trainy = []
     valy = []
     for lambd in lambda_x: #number of lambdas we want to test for each number of hidden nodes
         #------------------------------------------------------------------------------
         # Create random number generators:
         # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-        data_seed = 5
+        data_seed = 1
         ann_seed = data_seed
     
         def generate_rng(seed):
@@ -88,7 +88,7 @@ for hid in range(1,10): #range for the numbers of hidden nodes we want to try
     
         plt.show()
     
-        test.train(trn,val,0.1,40,0) #training, validation, lrn_rate, epochs, minibatchsize=0
+        test.train(trn,val,0.1,400,0) #training, validation, lrn_rate, epochs, minibatchsize=0
     
         #Check results again
         answer2 = check_results(test, False)
@@ -127,7 +127,7 @@ for hid in range(1,10): #range for the numbers of hidden nodes we want to try
     plt.ylabel('Error')
     plt.title('Error over lambdas')
     plt.legend()
-    #plt.savefig('ErrorPlot.png')
+    plt.savefig(f'LambdaPlot_{hid}.png')
     plt.show()
 
 #The best lambda for each number of hidden nodes is plotted
@@ -137,7 +137,7 @@ plt.xlabel('# hidden nodes')
 plt.ylabel('best lambdas')
 plt.title('best lambdas vs # hidden nodes (1 layer)')
 plt.legend()
-#plt.savefig('LambdaPlot.png')
+plt.savefig('HyperparameterPlot.png')
 plt.show()
 
 
