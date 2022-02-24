@@ -41,9 +41,10 @@ def load_presets(file_name):
                 name = properties[0]
                 #Then the input dimension
                 dimensions = int(properties[1])
-                #Iterate over all the classes that we have defined members for
+                #Iterate over all the distributions that we have defined members
+                # for
                 members = np.array([int(number) for number in properties[2].split('/')])
-                #Split up the coordinates for the different classes
+                #Split up the coordinates for the different distributions
                 center_coordinates = properties[3].split('/') ; coordinates = []
                 #Turn the coordinates from a list of strings to a list of lists of numbers
                 for location in center_coordinates:
@@ -55,13 +56,23 @@ def load_presets(file_name):
                 for size in scale_values:
                     sizes.append([float(number) for number in size[1:-1].split(',')])
                 scales = np.array(sizes)
+                # Get the (optional) class identifiers.
+                if len(properties) >= 6:
+                    class_ids = properties[5].split('/')
+                    class_ids = np.array(class_ids)
+                else:
+                    # Just use a new integer for each distribution, if no class
+                    # identifiers were provided.
+                    class_ids = np.arange(0, len(members))
+
                 #Add the dataset to the dictionary
-                datasets[name] = [dimensions, members, centers, scales]
+                datasets[name] = [dimensions, members, centers, scales,
+                                  class_ids]
     
     return datasets
 
 
-def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
+def generate_class_data(num_dims, mems, centers, scales, class_ids, val_mul=1,
                         rng=np.random.default_rng()):
     """
     Generates data for a specified-dimensional multi-class classification
@@ -71,12 +82,15 @@ def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
     ----------
     num_dims : int
         The number of dimensions for the data to be generated in.
-    num_mems : numpy array of integers
+    mems : numpy array of integers
         The number of members of each class.
     centers : nested numpy array of floats
         The num_dims-dimensional displacements of each class.
     scales : nested numpy array of floats
         The num_dims-dimensional standard-deviation (scale) of each class.
+    class_ids : numpy array
+        The class ids of the distributions. Use the same ids to make multiple
+        distributions part of the same class.
     val_mul : int
         The relative size (in members) of the validation data-set, with respect
         to the (training data-set). Set val_mul = 0 for no validation data-set.
@@ -101,27 +115,49 @@ def generate_class_data(num_dims, mems, centers, scales, val_mul=1,
     #the original array and the changes remain after we leave the function
     #because arrays are fucking stupid.
     num_mems = mems*val_mul
-    
-    num_classes = len(num_mems)
+
+    num_distributions = len(class_ids)
+    unique_classes = set(class_ids)
+    num_classes = len(unique_classes)
       
     x = np.empty(shape=(int(np.sum(num_mems)), num_dims), dtype=np.float32)
     d = np.zeros(shape=(int(np.sum(num_mems)), ), dtype=int)
-    if (num_classes > 2):
+    if num_classes > 2:
         d = np.zeros(shape=(int(np.sum(num_mems)), num_classes), dtype=int)
    
     sum_mems_0 = 0
     sum_mems_1 = 0
-    for i in range(0, num_classes):
-        sum_mems_1 += num_mems[i]       
+    ids_to_indices = {}  # Keeping track of which class ids map to which index
+    ids_to_targets = {}  # Keeping track of which class ids map to which target
+    for i in range(0, num_distributions):
+        # Get the current distributions class id
+        class_id = class_ids[i]
+
+        # Record new id: index pair
+        if class_id not in ids_to_indices.keys():
+            max_index = len(ids_to_indices.values())
+            ids_to_indices[class_id] = max_index
+
+        # Set index according to class_id
+        class_index = ids_to_indices[class_id]
+
+        # Setting positions and targets of distributions
+        sum_mems_1 += num_mems[i]
         x[sum_mems_0:sum_mems_1, :] = rng.normal(centers[i], scales[i],
                                                  size=(num_mems[i], num_dims))
-        if (num_classes > 2):
-            d[sum_mems_0:sum_mems_1, i] = 1   
+        if num_classes > 2:
+            d[sum_mems_0:sum_mems_1, class_index] = 1  # One-hot encoding
         else:
-            d[sum_mems_0:sum_mems_1] = i
+            d[sum_mems_0:sum_mems_1] = class_index  # Binary
+
+        # Record new id: target pair
+        if class_id not in ids_to_targets.keys():
+            ids_to_targets[class_id] = d[sum_mems_0]
+
         sum_mems_0 = sum_mems_1
     
-    return x, d
+    return x, d, ids_to_targets
+
 
 def standard(x):
     """
@@ -170,7 +206,6 @@ def standardise(x_trn, x_val=None):
         return(x_trn, None)
     x_val = (x_val - mean_trn) / std_trn
     return x_trn, x_val
-    
 
 
 def generate_datasets(preset_name, presets_file='data_presets.txt', extra = 0,
@@ -220,26 +255,32 @@ def generate_datasets(preset_name, presets_file='data_presets.txt', extra = 0,
     chosen_preset = presets[preset_name]
 
     # Synthesise validation data
-    x_val, d_val = generate_class_data(*chosen_preset, val_mul, rng = rng)
+    x_val, d_val, ids_to_targets = generate_class_data(*chosen_preset, val_mul, rng = rng)
     
     #Add any extra patterns to each distribution in the training data
     if extra:
         chosen_preset[1] += extra
     
     # Synthesise training data
-    x_trn, d_trn = generate_class_data(*chosen_preset, rng = rng)
+    x_trn, d_trn, __ = generate_class_data(*chosen_preset, rng = rng)
+    
+    # Reverse the ids_to_targets dictionary, for plotting labels
+    # (Using .tobytes() as dictionaries cannot have arrays for keys)
+    targets_to_ids = {targets.tobytes(): ids for ids, targets in
+                      ids_to_targets.items()}
 
     # Plot data
-    if (try_plot):
-        plot_data(x_trn, d_trn, 'training')
-        plot_data(x_val, d_val, 'validation')
+    if try_plot:
+        plot_data(x_trn, d_trn, 'training', targets_to_ids)
+        plot_data(x_val, d_val, 'validation', targets_to_ids)
 
     # Standardise data
     x_trn, x_val = standardise(x_trn, x_val)   
     
-    return ((x_trn, d_trn), (x_val, d_val))
+    return (x_trn, d_trn), (x_val, d_val)
 
-def plot_data(x, d, data_name = 'generic'):
+
+def plot_data(x, d, data_name='generic', targets_to_ids=None):
     """
     Plot 2D input data x, distinguished into the corresponding unique targets d.
 
@@ -253,6 +294,9 @@ def plot_data(x, d, data_name = 'generic'):
         the target uses one-hot encoding.   
     data_name : str
         The name of the data to be used in the plot title.
+    targets_to_ids : dictionary of numpy arrays as bytes for keys and strings
+                     for values
+        Pairs of targets and target labels. The default is None.
         
     Returns
     -------
@@ -285,16 +329,49 @@ def plot_data(x, d, data_name = 'generic'):
         for j in range(0, 2):
             dx[i][j] = np.asarray(dx[i][j])
     
-    # Plot each class seperately, for automatic labelling and colouring
-    plt.figure()  
-    plt.title('Synthetic ' + data_name + ' data')
+    # Plot each class separately, for automatic labelling and colouring
+    fig, ax = plt.subplots()
+    ax.set_title('Synthetic ' + data_name + ' data')
     num_classes = len(indices)-1
     for i in range(0, num_classes):
         x = [xy[0] for xy in dx[indices[i]:indices[i+1], 1]]
         y = [xy[1] for xy in dx[indices[i]:indices[i+1], 1]]
-        plt.scatter(x, y, label = str(dx[indices[i], 0]))  
+
+        # Constructing the label
+        target = dx[indices[i], 0]
+        label = str(target)  # Default label if no targets_to_ids provided
+        if not isinstance(targets_to_ids, type(None)):
+            # Get the class_id from the byte form of the target
+            class_id = targets_to_ids[target.tobytes()]
+
+            class_id = str(class_id)
+            target = str(target)
+            if class_id != target:
+                if num_classes > 2:
+                    label = class_id + " " + target
+                else:
+                    label = class_id + " (" + target + ")"
+
+        # Plotting!
+        ax.scatter(x, y, label=label)
     
     # Make x and y axis scale equally
     plt.gca().set_aspect('equal', adjustable='box')
                                                    
-    plt.legend()
+    ax.legend()
+
+    # Uncomment for origin lines
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.axvline(0, color='gray', linewidth=0.5)
+
+
+    # Uncomment for grid lines
+    """
+    ax.xaxis.grid(True, which='major')
+    ax.yaxis.grid(True, which='major')
+    """
+
+    plt.show()
+
+
+generate_datasets('uni-brow', try_plot=True)

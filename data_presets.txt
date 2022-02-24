@@ -1,7 +1,7 @@
 #Define the properties of your randomly generated training data like this:
-#name ; input dimension ; members in each class ; center of distributions ; size of distributions
+#name ; input dimension ; members in distributions ; center of distributions ; size of distributions ; class identifiers
 
-#Define the amount of members in each class like this: class1/class2/.../classK
+#Define the amount of members in each distribution like this: distribution1/distribution2/.../distributionK
 
 #Define the center of the distributions for each class like this: (x1,x2,...,xn)/.../(x1,x2,...,xn)
 #where n denotes the input dimension
@@ -9,19 +9,26 @@
 #Define the scale of the distributions for each class like this: (s1,s2,...,sn)/.../(s1,s2,...,sn)
 #s1 corresponds to the scale in the x1-direction and so on
 
-#Empty lines and lines that start with # are ignored when loading datasets
+#(Optional) Define the class identifier of each distribution like this: id1/id2/.../idn.
+#The identifier may be an integer or a string.
+#All distributions of a data preset which use the same id will have equal targets.
+#If a data preset contains no class identifiers, then each distribution inherits a unique class.
+
+#Empty lines and lines that start with # are ignored when loading data presets
 #--------------------------------------------------------------------------------------------------
-#Define your datasets below:
+#Define your data presets below:
 
 lagom ; 5 ; 50/50 ; (0,0,0,0,0)/(8,0,0,0,0) ; (8,8,8,8,8)/(16,8,8,8,8)
 circle ; 2 ; 500 ; (0,0) ; (5,5)
-baby ; 2 ; 5/5 ; (-10,0)/(10,0) ; (1,1)/(1,1)
+baby ; 2 ; 5/5 ; (-10,0)/(10,0) ; (1,1)/(1,1) ; 0/1
 circle_intercept ; 2 ; 100/100 ; (0,0)/(5,0) ; (2,2)/(2,2)
 circle_ception ; 2 ; 100/100 ; (0,0)/(0,1) ; (3,3)/(1,1)
 ellipses ; 2 ; 300/300/300 ; (0,0)/(5,0)/(2.5,2.5) ; (3,1)/(1,3)/(3,1)
 headache ; 5 ; 100/100 ; (0,0,0,0,0)/(3,0,0,0,0) ; (2,2,2,2,2)/(1,1,1,1,1)
 ce ; 2 ; 500/50/100 ; (0,0)/(8,0)/(-7,0) ; (3,3)/(5,0.5)/(4,0.8)
-smiley ; 2 ; 300/300/200 ; (-5,5)/(5,5)/(0,-10) ; (0.5,3)/(0.5,3)/(5,0.2)
+smiley ; 2 ; 300/300/200 ; (-5,5)/(5,5)/(0,-10) ; (0.5,3)/(0.5,3)/(5,0.2) ; Eyes/Eyes/Mouth
+uni-brow ; 2 ; 300/300/200/100 ; (-6,5)/(6,5)/(0,-5)/(0,10) ; (1.5,1.5)/(1.5,1.5)/(5,0.2)/(7,0.5) ; Eyes/Eyes/Mouth/Uni-brow
 simple ; 2 ; 2 ; (0,0) ; (1,1)
+checkerboard ; 2 ; 50/50/50/50 ; (0,0)/(0,5)/(5,0)/(5,5) ; (1.5,1.5)/(1.5,1.5)/(1.5,1.5)/(1.5,1.5) ; black/white/white/black
 
 #---------------------------------------------------------------------------------------------------
