@@ -26,15 +26,15 @@ def check_layers(model):
 #For lambda
 start_la = 0
 final_la = 0.01
-number_to_try = 30
+number_to_try = 25
 
 #For patterns
-numPatterns = 10 #how many times we make a new number of patterns
-patternStepSize = 40
+numPatterns = 50 #how many times we make a new number of patterns
+patternStepSize = 2
 
 #For the model
 learnRate = 0.1
-epochs = 700
+epochs = 1000
 minibatchsize = 0 #0 if we don't want to use minibatches
 
 lambda_x = np.linspace(start_la,final_la,number_to_try)
@@ -51,7 +51,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         #------------------------------------------------------------------------------
         # Create random number generators:
         # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-        data_seed = 1
+        data_seed = 2
         ann_seed = data_seed
     
         def generate_rng(seed):
@@ -93,6 +93,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         outputs = test.feed_all_patterns(x_val) # Collect the outputs for all the inputs
     
         plt.show()
+        plt.clf()
     
         test.train(trn,val,learnRate,epochs,minibatchsize) #training, validation, lrn_rate, epochs, minibatchsize=0
     
@@ -106,6 +107,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         cm_val = cs.construct_confusion_matrix(outputs, d_val)
     
         plt.show()
+        plt.clf()
     
         validation = test.history['val'][-1] #Loss for validation
     
@@ -123,7 +125,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         
 
     #Appending the number of patterns nodes and best lambda for that number of nodes, to be plotted later
-    nPatterns.append(extra_patterns+len(trn[0]))
+    nPatterns.append(len(trn[0]))
     
     #I'm appending the lambda that gives the lowest validation-, and not training-, loss, as that would be zero
     bestLambd.append(lambda_x[valy.index(min(valy))]) 
@@ -136,8 +138,9 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     plt.ylabel('Error')
     plt.title(f'Error over lambdas for {extra_patterns} extra patterns')
     plt.legend()
-    plt.savefig(f'error_lambda_plot_{extra_patterns}_hns.png')
+    plt.savefig(f'error_lambda_plot_{extra_patterns}_extra_patterns.png')
     plt.show()
+    plt.clf()
     
     # Construct a list of training and validation accuracies from the lambd_to_cms dictionary
     acc_trn = []
@@ -154,10 +157,11 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     plt.plot(lambda_x, acc_val, "bo", label="Validation")
     plt.xlabel("$\lambda$")
     plt.ylabel("Accuracy")
-    plt.title("Accuracy over " + "$\lambda$")
+    plt.title("Accuracy over " + "$\lambda$" + " for " + str(extra_patterns) + " extra patterns")
     plt.legend()
-    plt.savefig(f'accuracy_lambda_plot_{extra_patterns}_hns.png')
+    plt.savefig(f'accuracy_lambda_plot_{extra_patterns}_extra_patterns.png')
     plt.show()
+    plt.clf()
 
 ##The best lambda for each number of patterns is plotted
 plt.figure()
@@ -168,3 +172,17 @@ plt.title('best lambdas vs # patterns')
 plt.legend()
 plt.savefig('patterns_lambda_plot.png')
 plt.show()
+plt.clf()
+
+# Write results to a new python file
+uniqueFileName = "patterns_lambda_for_seed_equals_"+data_seed+".txt"
+with open('readme.txt', 'w') as f:
+    # Write comment describing the document
+
+    # Write hyperparameters
+    
+    # Write empty line
+    file.write("\n")
+    
+    # Write csv pattern and lamba on each line
+    f.write('Create a new text file!')

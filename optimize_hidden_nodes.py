@@ -26,7 +26,7 @@ def check_layers(model):
 #For lambda
 start_la = 0
 final_la = 0.01
-number_to_try = 30
+number_to_try = 3
 
 #For number of hidden nodes, stepsize is currently 1
 startNumberHidden = 10
@@ -134,7 +134,7 @@ for hid in range(startNumberHidden,endNumberHidden+1): #range for the numbers of
     plt.ylabel('Error')
     plt.title('Error over lambdas')
     plt.legend()
-    plt.savefig(f'error_lambda_plot_{hid}_hns.png')
+    plt.savefig(f'error_lambda_plot_{hid}_hidden_nodes.png')
     plt.show()
     
     # Construct a list of training and validation accuracies from the lambd_to_cms dictionary
@@ -152,9 +152,9 @@ for hid in range(startNumberHidden,endNumberHidden+1): #range for the numbers of
     plt.plot(lambda_x, acc_val, "bo", label="Validation")
     plt.xlabel("$\lambda$")
     plt.ylabel("Accuracy")
-    plt.title("Accuracy over " + "$\lambda$")
+    plt.title("Accuracy over " + "$\lambda$" + " for " + str(hid) + " hidden nodes")
     plt.legend()
-    plt.savefig(f'accuracy_lambda_plot_{hid}_hns.png')
+    plt.savefig(f'accuracy_lambda_plot_{hid}_hidden_nodes.png')
     plt.show()
 
 #The best lambda for each number of hidden nodes is plotted
