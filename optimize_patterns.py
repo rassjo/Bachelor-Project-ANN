@@ -26,21 +26,23 @@ def check_layers(model):
 #For lambda
 start_la = 0
 final_la = 0.01
-number_to_try = 25
+number_to_try = 2
 
 #For patterns
-numPatterns = 50 #how many times we make a new number of patterns
+numPatterns = 2 #how many times we make a new number of patterns
 patternStepSize = 2
 
 #For the model
 learnRate = 0.1
-epochs = 1000
+epochs = 10
 minibatchsize = 0 #0 if we don't want to use minibatches
 
 lambda_x = np.linspace(start_la,final_la,number_to_try)
 nPatterns = []
 bestLambd = []
 hid = 15 #hidden nodes
+preset_name = "lagom"
+val_mul = 10
 for i in range(0,numPatterns+1): #range for the numbers of patterns
     trainy = []
     valy = []
@@ -66,9 +68,9 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     
         #------------------------------------------------------------------------------
         # Import data
-        trn, val = sdg.generate_datasets('lagom',
+        trn, val = sdg.generate_datasets(preset_name,
                                      extra = extra_patterns,
-                                     val_mul = 10,
+                                     val_mul = val_mul,
                                      try_plot = False,
                                      rng = data_rng)
         input_dim = len(trn[0][0]) #Get the input dimension from the training data
@@ -83,6 +85,9 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         #Recipe for defining a layer: [number of nodes, activation function, L2]
         layer_defines = [[hid, act.tanh, lambd],
                          [1, act.sig, lambd]]
+        # Save as string for .txt.
+        # This is a disgusting way of getting the string... but it wasn't playing nice otherwise.
+        layer_defines_str = "[[" + str(hid) +", act.tanh, " + str(lambd) + "], [1, act.sig, " + str(lambd) + "]]"
     
         test = ann.Model(input_dim, layer_defines, ann_rng)
     
@@ -92,8 +97,8 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         outputs = test.feed_all_patterns(x_trn) # Collect the outputs for all the inputs
         outputs = test.feed_all_patterns(x_val) # Collect the outputs for all the inputs
     
-        plt.show()
-        plt.clf()
+        # plt.show()
+        # plt.clf()
     
         test.train(trn,val,learnRate,epochs,minibatchsize) #training, validation, lrn_rate, epochs, minibatchsize=0
     
@@ -106,17 +111,17 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         outputs = test.feed_all_patterns(x_val) #Collect the outputs for all the inputs
         cm_val = cs.construct_confusion_matrix(outputs, d_val)
     
-        plt.show()
-        plt.clf()
+        # plt.show()
+        # plt.clf()
     
         validation = test.history['val'][-1] #Loss for validation
     
         # Display losses
-        print("Lambda", lambd)
-        print("Loss before training", answer1)
-        print("Loss after training", answer2)
-        print("Validation loss", test.history['val'][-1])
-        print("")
+        # print("Lambda", lambd)
+        # print("Loss before training", answer1)
+        # print("Loss after training", answer2)
+        # print("Validation loss", test.history['val'][-1])
+        # print("")
         
         trainy.append(answer2)
         valy.append(validation)
@@ -131,16 +136,16 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     bestLambd.append(lambda_x[valy.index(min(valy))]) 
     
     #The loss for each lambda is plotted once for every new number of patterns
-    plt.figure()
-    plt.plot(lambda_x, trainy, 'go', label='error after train vs lambd')
-    plt.plot(lambda_x, valy, 'bo', label='Validation error vs lambd')
-    plt.xlabel('lambdas')
-    plt.ylabel('Error')
-    plt.title(f'Error over lambdas for {extra_patterns} extra patterns')
-    plt.legend()
-    plt.savefig(f'error_lambda_plot_{extra_patterns}_extra_patterns.png')
-    plt.show()
-    plt.clf()
+    # plt.figure()
+    # plt.plot(lambda_x, trainy, 'go', label='error after train vs lambd')
+    # plt.plot(lambda_x, valy, 'bo', label='Validation error vs lambd')
+    # plt.xlabel('lambdas')
+    # plt.ylabel('Error')
+    # plt.title(f'Error over lambdas for {extra_patterns} extra patterns')
+    # plt.legend()
+    # plt.savefig(f'error_lambda_plot_{extra_patterns}_extra_patterns.png')
+    # plt.show()
+    # plt.clf()
     
     # Construct a list of training and validation accuracies from the lambd_to_cms dictionary
     acc_trn = []
@@ -152,37 +157,74 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         acc_val.append(stats_val[0]["advanced"]["acc"])
         
     # Plot the accuracy over lambda plot
-    plt.figure()
-    plt.plot(lambda_x, acc_trn, "go", label="Training")
-    plt.plot(lambda_x, acc_val, "bo", label="Validation")
-    plt.xlabel("$\lambda$")
-    plt.ylabel("Accuracy")
-    plt.title("Accuracy over " + "$\lambda$" + " for " + str(extra_patterns) + " extra patterns")
-    plt.legend()
-    plt.savefig(f'accuracy_lambda_plot_{extra_patterns}_extra_patterns.png')
-    plt.show()
-    plt.clf()
+    # plt.figure()
+    # plt.plot(lambda_x, acc_trn, "go", label="Training")
+    # plt.plot(lambda_x, acc_val, "bo", label="Validation")
+    # plt.xlabel("$\lambda$")
+    # plt.ylabel("Accuracy")
+    # plt.title("Accuracy over " + "$\lambda$" + " for " + str(extra_patterns) + " extra patterns")
+    # plt.legend()
+    # plt.savefig(f'accuracy_lambda_plot_{extra_patterns}_extra_patterns.png')
+    # plt.show()
+    # plt.clf()
 
 ##The best lambda for each number of patterns is plotted
-plt.figure()
-plt.plot(nPatterns, bestLambd, 'ro', label='best lambdas vs # patterns')
-plt.xlabel('# patterns')
-plt.ylabel('best lambdas')
-plt.title('best lambdas vs # patterns')
-plt.legend()
-plt.savefig('patterns_lambda_plot.png')
-plt.show()
-plt.clf()
+# plt.figure()
+# plt.plot(nPatterns, bestLambd, 'ro', label='best lambdas vs # patterns')
+# plt.xlabel('# patterns')
+# plt.ylabel('best lambdas')
+# plt.title('best lambdas vs # patterns')
+# plt.legend()
+# plt.savefig('patterns_lambda_plot.png')
+# plt.show()
+# plt.clf()
 
-# Write results to a new python file
-uniqueFileName = "patterns_lambda_for_seed_equals_"+data_seed+".txt"
-with open('readme.txt', 'w') as f:
-    # Write comment describing the document
+uniqueFileName = "patterns_lambda_for_data_seed_"+str(data_seed)+".txt"
+def write_hyperparameters():
+    # If the document already exists, then do nothing.
+    try:
+        open(uniqueFileName, "x")
+    except:
+        return None
+    
+    # Overwrite the empty file with the hyperparameters
+    with open(uniqueFileName, "w") as f:
+        # Write hyperparameters
+        f.write("# Here we describe the hyperparameters")
+        # Lambda stuff
+        f.write("# Lambda stuff" + "\n")
+        f.write(str("# number of lambdas ; start lambda ; final lambda" + "\n"))
+        f.write(str(number_to_try) + " ; " + str(start_la) + " ; " + str(final_la) + "\n")
+        f.write(str("\n"))
+        # Pattern stuff
+        f.write("# Pattern stuff" + "\n")
+        f.write(str("# number of patterns ; pattern step size" + "\n"))
+        f.write(str(numPatterns) + " ; " + str(patternStepSize) + "\n")
+        f.write(str("\n"))
+        # ANN stuff
+        f.write("# ANN stuff" + "\n")
+        f.write(str("# learning rate ; epochs ; mini-batch size ; layer defines (ignore lambda) ; ann seed" + "\n"))
+        f.write(str(learnRate) + " ; " + str(epochs) + " ; " + str(minibatchsize) + " ; " + layer_defines_str + " ; " + str(ann_seed) + "\n")
+        f.write(str("\n"))
+        # Data-set stuff
+        f.write("# Data-set stuff" + "\n")
+        f.write(str("# preset name ; validation to training ratio ; data seed" + "\n"))
+        f.write(str(preset_name) + " ; " + str(val_mul) + " ; " + str(data_seed) + "\n")
+        f.write(str("\n"))
 
-    # Write hyperparameters
-    
-    # Write empty line
-    file.write("\n")
-    
-    # Write csv pattern and lamba on each line
-    f.write('Create a new text file!')
+        # Write semi-colon seperated optimal lambda for number of patterns on each line
+        f.write("# Here we write the results" + "\n")
+        f.write(str("# optimal lambda ; number of patterns") + "\n")
+
+# Ideally, we would call this before running everything...
+# That way, we could then write the "best lambda ; number of patterns" as soon as they are available,
+# rather than waiting for everything to finish.
+# But at the moment, it relies on a few hyperparameters that we don't define until during testing.
+write_hyperparameters()
+
+# Write the "best lambda ; number of patterns" pairs
+# In the case of the test crashing, we should adapt the testing loop to start off from where the
+# previous highest number of patterns was
+with open(uniqueFileName, "a") as f:
+    for i in range(0, len(bestLambd)):
+        f.write(str(bestLambd[i]) + " ; " + str(nPatterns[i]) + "\n")

@@ -200,7 +200,7 @@ class Model:
         #Therefore, we DON'T need an extra run through all patterns once
         #we have gone through all epochs like we do for the training data!
 
-        self.show_history(epochs) #This will generate the "loss plot"
+        # self.show_history(epochs) #This will generate the "loss plot"
 
 
 class Layer_Dense:
