@@ -170,7 +170,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
 
 #The best lambda for each number of patterns is plotted
 plt.figure()
-plt.plot(nPatterns, bestLambd, 'ro', label='best lambdas vs # patterns')
+plt.errorbar(nPatterns, bestLambd, yerr=0, fmt = 'o', color='r',  ecolor='b', capsize=5, label='best lambdas vs # patterns')
 plt.xlabel('# patterns')
 plt.ylabel('best lambdas')
 plt.title('best lambdas vs # patterns')
