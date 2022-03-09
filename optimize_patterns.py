@@ -4,6 +4,22 @@ import activation_functions as act
 import synthetic_data_generation as sdg
 import classification_statistics as cs
 import matplotlib.pyplot as plt
+from id_generator import best_hash
+
+def write_hyperparameters(name,hp,identifier,seed):
+    # If the document already exists, then do nothing.
+    try:
+        open(name, "x")
+    except:
+        return None
+    
+    # Overwrite the empty file with the hyperparameters
+    with open(name, "w") as f:
+        print(f"Hyperparameters: {hp}\n", file=f)
+        print(f"Seed: {seed}\n", file=f)
+        print(f"ID: {identifier}\n", file=f)
+        print("Below are the results!\n", file=f)
+        print("Best Lambda ; Number of training patterns\n", file=f)
 
 def check_results(model, show=False):
     loss = 0
@@ -24,25 +40,37 @@ def check_layers(model):
     print("Biases:", biases)
 
 #For lambda
-number_to_try = 2
+number_to_try = 5
 
 #For patterns
-numPatterns = 5 #how many (extra) times we make a new number of patterns
+numPatterns = 4 #how many (extra) times we make a new number of patterns
 
 #For the model
-learnRate = 0.1
-epochs = 10
 minibatchsize = 0 #0 if we don't want to use minibatches
 
 lambda_x = [0.00001*10**(int(0.25*i))*2**(i%4) for i in range(0,number_to_try)]
-start_la = min(lambda_x)
-final_la = max(lambda_x)
+
+hp = {'lrn_rate': 0.1,
+      'epochs': 10,
+      'lambdas': lambda_x,
+      'val_mul': 10,
+      'hidden': 15,
+      'dataset': 'lagom'}
+
+seed = 4
+
+hyperparameter_string = str(list(hp.values()))
+identifier = best_hash(hyperparameter_string)
+uniqueFileName = "patterns_lambda_" + str(identifier) + "_" + str(seed) + ".txt"
+
+write_hyperparameters(uniqueFileName,hp,identifier,seed)
 
 nPatterns = []
 bestLambd = []
-hid = 15 #hidden nodes
-preset_name = "lagom"
-val_mul = 10
+
+if minibatchsize:
+    raise Exception('Turn off stochastic gradient descent!')
+
 for i in range(0,numPatterns+1): #range for the numbers of patterns
     trainy = []
     valy = []
@@ -53,7 +81,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         #------------------------------------------------------------------------------
         # Create random number generators:
         # seed == -1 for random rng, seed >= 0 for fixed rng (seed should be integer)
-        data_seed = 2
+        data_seed = seed
         ann_seed = data_seed
     
         def generate_rng(seed):
@@ -61,16 +89,17 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
             # -1 is for random rng, integer >= 0 for fixed
             if (seed != -1):
                 return np.random.default_rng(data_seed)
-            return np.random.default_rng()
-    
+            else:
+                raise Exception(f'Please set a fixed seed, otherwise results will not be reproducable!')
+                
         data_rng = generate_rng(data_seed)
         ann_rng = generate_rng(ann_seed)
     
         #------------------------------------------------------------------------------
         # Import data
-        trn, val = sdg.generate_datasets(preset_name,
+        trn, val = sdg.generate_datasets(hp["dataset"],
                                      extra = extra_patterns,
-                                     val_mul = val_mul,
+                                     val_mul = hp["val_mul"],
                                      try_plot = False,
                                      rng = data_rng)
         input_dim = len(trn[0][0]) #Get the input dimension from the training data
@@ -83,12 +112,10 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     
         #Properties of all the layers
         #Recipe for defining a layer: [number of nodes, activation function, L2]
-        layer_defines = [[hid, act.tanh, lambd],
+        layer_defines = [[hp["hidden"], act.tanh, lambd],
                          [1, act.sig, lambd]]
         # Save as string for .txt.
         # This is a disgusting way of getting the string... but it wasn't playing nice otherwise.
-        layer_defines_str = "[[" + str(hid) +", act.tanh, " + str(lambd) + "], [1, act.sig, " + str(lambd) + "]]"
-    
         test = ann.Model(input_dim, layer_defines, ann_rng)
     
         #Check results
@@ -100,7 +127,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         # plt.show()
         # plt.clf()
     
-        test.train(trn,val,learnRate,epochs,minibatchsize) #training, validation, lrn_rate, epochs, minibatchsize=0
+        test.train(trn,val,hp["lrn_rate"],hp["epochs"],minibatchsize) #training, validation, lrn_rate, epochs, minibatchsize=0
     
         #Check results again
         answer2 = check_results(test, False)
@@ -134,6 +161,12 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     
     #I'm appending the lambda that gives the lowest validation-, and not training-, loss, as that would be zero
     bestLambd.append(lambda_x[valy.index(min(valy))]) 
+    
+    # Write the "best lambda ; number of patterns" pairs
+    # In the case of the test crashing, we should adapt the testing loop to start off from where the
+    # previous highest number of patterns was
+    with open(uniqueFileName, "a") as f:
+        f.write("$ " + str(lambda_x[valy.index(min(valy))]) + " ; " + str(len(trn[0])) + "\n")
     
     #The loss for each lambda is plotted once for every new number of patterns
     # plt.figure()
@@ -170,7 +203,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
 
 #The best lambda for each number of patterns is plotted
 plt.figure()
-plt.errorbar(nPatterns, bestLambd, yerr=0, fmt = 'o', color='r',  ecolor='b', capsize=5, label='best lambdas vs # patterns')
+plt.errorbar(nPatterns, bestLambd, yerr=[0.1,0.2,0.3,0.4,0.5], fmt = 'o', color='r', ecolor='b', capsize=5, label='best lambdas vs # patterns')
 plt.xlabel('# patterns')
 plt.ylabel('best lambdas')
 plt.title('best lambdas vs # patterns')
@@ -178,53 +211,3 @@ plt.legend()
 plt.savefig('patterns_lambda_plot.png')
 plt.show()
 plt.clf()
-
-uniqueFileName = "patterns_lambda_for_data_seed_"+str(data_seed)+".txt"
-def write_hyperparameters():
-    # If the document already exists, then do nothing.
-    try:
-        open(uniqueFileName, "x")
-    except:
-        return None
-    
-    # Overwrite the empty file with the hyperparameters
-    with open(uniqueFileName, "w") as f:
-        # Write hyperparameters
-        f.write("# Here we describe the hyperparameters")
-        # Lambda stuff
-        f.write("# Lambda stuff" + "\n")
-        f.write(str("# number of lambdas ; start lambda ; final lambda" + "\n"))
-        f.write(str(number_to_try) + " ; " + str(start_la) + " ; " + str(final_la) + "\n")
-        f.write(str("\n"))
-        # Pattern stuff
-        f.write("# Pattern stuff" + "\n")
-        f.write(str("# number of patterns" + "\n"))
-        f.write(str(numPatterns) + "\n")
-        f.write(str("\n"))
-        # ANN stuff
-        f.write("# ANN stuff" + "\n")
-        f.write(str("# learning rate ; epochs ; mini-batch size ; layer defines (ignore lambda) ; ann seed" + "\n"))
-        f.write(str(learnRate) + " ; " + str(epochs) + " ; " + str(minibatchsize) + " ; " + layer_defines_str + " ; " + str(ann_seed) + "\n")
-        f.write(str("\n"))
-        # Data-set stuff
-        f.write("# Data-set stuff" + "\n")
-        f.write(str("# preset name ; validation to training ratio ; data seed" + "\n"))
-        f.write(str(preset_name) + " ; " + str(val_mul) + " ; " + str(data_seed) + "\n")
-        f.write(str("\n"))
-
-        # Write semi-colon seperated optimal lambda for number of patterns on each line
-        f.write("# Here we write the results" + "\n")
-        f.write(str("# optimal lambda ; number of patterns") + "\n")
-
-# Ideally, we would call this before running everything...
-# That way, we could then write the "best lambda ; number of patterns" as soon as they are available,
-# rather than waiting for everything to finish.
-# But at the moment, it relies on a few hyperparameters that we don't define until during testing.
-write_hyperparameters()
-
-# Write the "best lambda ; number of patterns" pairs
-# In the case of the test crashing, we should adapt the testing loop to start off from where the
-# previous highest number of patterns was
-with open(uniqueFileName, "a") as f:
-    for i in range(0, len(bestLambd)):
-        f.write(str(bestLambd[i]) + " ; " + str(nPatterns[i]) + "\n")
