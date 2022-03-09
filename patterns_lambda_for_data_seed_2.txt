@@ -1,0 +1,48 @@
+# Here we describe the hyperparameters# Lambda stuff
+# number of lambdas ; start lambda ; final lambda
+2 ; 0 ; 0.01
+
+# Pattern stuff
+# number of patterns
+2
+
+# ANN stuff
+# learning rate ; epochs ; mini-batch size ; layer defines (ignore lambda) ; ann seed
+0.1 ; 10 ; 0 ; [[15, act.tanh, 0.01], [1, act.sig, 0.01]] ; 2
+
+# Data-set stuff
+# preset name ; validation to training ratio ; data seed
+lagom ; 10 ; 2
+
+# Here we write the results
+# optimal lambda ; number of patterns
+0.01 ; 48
+0.01 ; 56
+0.01 ; 72
+0.01 ; 48
+0.01 ; 56
+0.01 ; 72
+0.01 ; 48
+0.01 ; 56
+0.01 ; 72
+0.01 ; 104
+0.01 ; 120
+0.01 ; 200
+0.1 ; 48
+0.1 ; 56
+0.1 ; 72
+0.1 ; 104
+0.1 ; 120
+0.1 ; 200
+3e-05 ; 48
+3e-05 ; 56
+3e-05 ; 72
+3e-05 ; 104
+3e-05 ; 120
+3e-05 ; 200
+2e-05 ; 48
+2e-05 ; 56
+2e-05 ; 72
+2e-05 ; 104
+2e-05 ; 120
+2e-05 ; 200

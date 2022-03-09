@@ -24,20 +24,20 @@ def check_layers(model):
     print("Biases:", biases)
 
 #For lambda
-start_la = 0
-final_la = 0.01
 number_to_try = 2
 
 #For patterns
-numPatterns = 2 #how many times we make a new number of patterns
-patternStepSize = 2
+numPatterns = 5 #how many (extra) times we make a new number of patterns
 
 #For the model
 learnRate = 0.1
 epochs = 10
 minibatchsize = 0 #0 if we don't want to use minibatches
 
-lambda_x = np.linspace(start_la,final_la,number_to_try)
+lambda_x = [0.00001*10**(int(0.25*i))*2**(i%4) for i in range(0,number_to_try)]
+start_la = min(lambda_x)
+final_la = max(lambda_x)
+
 nPatterns = []
 bestLambd = []
 hid = 15 #hidden nodes
@@ -47,7 +47,7 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     trainy = []
     valy = []
     lambd_to_cms = {}
-    extra_patterns = i*patternStepSize
+    extra_patterns = 4*10**(int(0.25*i))*2**(i%4) #patterns = constx10^(int(0.25xtrial))x2^(trial%4)
     
     for lambd in lambda_x: #number of lambdas we want to test for each number of hidden nodes
         #------------------------------------------------------------------------------
@@ -168,16 +168,16 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     # plt.show()
     # plt.clf()
 
-##The best lambda for each number of patterns is plotted
-# plt.figure()
-# plt.plot(nPatterns, bestLambd, 'ro', label='best lambdas vs # patterns')
-# plt.xlabel('# patterns')
-# plt.ylabel('best lambdas')
-# plt.title('best lambdas vs # patterns')
-# plt.legend()
-# plt.savefig('patterns_lambda_plot.png')
-# plt.show()
-# plt.clf()
+#The best lambda for each number of patterns is plotted
+plt.figure()
+plt.plot(nPatterns, bestLambd, 'ro', label='best lambdas vs # patterns')
+plt.xlabel('# patterns')
+plt.ylabel('best lambdas')
+plt.title('best lambdas vs # patterns')
+plt.legend()
+plt.savefig('patterns_lambda_plot.png')
+plt.show()
+plt.clf()
 
 uniqueFileName = "patterns_lambda_for_data_seed_"+str(data_seed)+".txt"
 def write_hyperparameters():
@@ -198,8 +198,8 @@ def write_hyperparameters():
         f.write(str("\n"))
         # Pattern stuff
         f.write("# Pattern stuff" + "\n")
-        f.write(str("# number of patterns ; pattern step size" + "\n"))
-        f.write(str(numPatterns) + " ; " + str(patternStepSize) + "\n")
+        f.write(str("# number of patterns" + "\n"))
+        f.write(str(numPatterns) + "\n")
         f.write(str("\n"))
         # ANN stuff
         f.write("# ANN stuff" + "\n")
