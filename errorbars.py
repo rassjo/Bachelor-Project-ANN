@@ -2,7 +2,7 @@ import numpy as np
 
 
 
-# x is the list of best lambdas for one set of hyperparameters
+# x is the array of best lambdas for one set of hyperparameters
 def SEMcalc(x):
     #Note: x should be an array
     N = len(x)
