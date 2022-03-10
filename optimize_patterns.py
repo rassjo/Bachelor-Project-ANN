@@ -11,7 +11,7 @@ def write_hyperparameters(name,hp,identifier,seed):
     try:
         open(name, "x")
     except:
-        return None
+        raise Exception(f"Results from a run with these settings already exists! Please delete {name}!")
     
     # Overwrite the empty file with the hyperparameters
     with open(name, "w") as f:
@@ -57,7 +57,7 @@ hp = {'lrn_rate': 0.1,
       'hidden': 15,
       'dataset': 'lagom'}
 
-seed = 4
+seed = 2
 
 hyperparameter_string = str(list(hp.values()))
 identifier = best_hash(hyperparameter_string)
