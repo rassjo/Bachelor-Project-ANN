@@ -5,6 +5,8 @@ import synthetic_data_generation as sdg
 import classification_statistics as cs
 import matplotlib.pyplot as plt
 from id_generator import best_hash
+import sys
+import warnings
 
 def write_hyperparameters(name,hp,identifier,seed):
     # If the document already exists, then do nothing.
@@ -57,7 +59,16 @@ hp = {'lrn_rate': 0.1,
       'hidden': 15,
       'dataset': 'lagom'}
 
-seed = 2
+# For inputting seed from the command line. (i.e. use ```nohup nice n -19 python3 optimize_patterns.py seed &```, where seed is an integer).
+seed = -1
+try:
+  seed = int(sys.argv[1])
+except TypeError:
+  warnings.warn("Seed input was not an integer. Using random seed instead.")
+except:
+  warnings.warn("Seed input was missing. Using random seed instead.")
+
+#For hyperparameters in .txt
 
 hyperparameter_string = str(list(hp.values()))
 identifier = best_hash(hyperparameter_string)
@@ -202,12 +213,12 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     # plt.clf()
 
 #The best lambda for each number of patterns is plotted
-plt.figure()
-plt.errorbar(nPatterns, bestLambd, yerr=[0.1,0.2,0.3,0.4,0.5], fmt = 'o', color='r', ecolor='b', capsize=5, label='best lambdas vs # patterns')
-plt.xlabel('# patterns')
-plt.ylabel('best lambdas')
-plt.title('best lambdas vs # patterns')
-plt.legend()
-plt.savefig('patterns_lambda_plot.png')
-plt.show()
-plt.clf()
+# plt.figure()
+# plt.errorbar(nPatterns, bestLambd, yerr=[0.1,0.2,0.3,0.4,0.5], fmt = 'o', color='r', ecolor='b', capsize=5, label='best lambdas vs # patterns')
+# plt.xlabel('# patterns')
+# plt.ylabel('best lambdas')
+# plt.title('best lambdas vs # patterns')
+# plt.legend()
+# plt.savefig('patterns_lambda_plot_' + str(seed) +'.png')
+# plt.show()
+# plt.clf()
