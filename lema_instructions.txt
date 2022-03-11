@@ -1,0 +1,76 @@
+Guide for accessing Lema:
+
+
+Installing MobaXterm:
+1) Download MobaXterm installer.
+2) Run MobaXterm installer.msi
+3) If an error shows, then it may be that you need to move MobaXterm installer.dat into the same temp folder as MobaXterm installer.msi
+4) Done! (hopefully).
+
+
+Connecting to Lema:
+1) Open MobaXterm.
+2) Sessions > New session > SSH.
+3) Enter remote host lema.thep.lu.se
+4) (optional) Specify username i.e. b22_joseph
+5) Check that it is port 22
+6) Press OK.
+7) Follow Lema's prompts to log in.
+For troubleshooting problems connecting to Lema, check https://dev.thep.lu.se/computingFAQ/tricks/#i-cannot-remote-log-in-to-my-machine
+I have personally ran into a problem where I could not remote connect for one afternoon, but it fixed itself when I tried again the next morning.
+
+
+To get the correct python version: (source: https://dev.thep.lu.se/computingFAQ/software/#python-versions)
+1) Enter
+´´´´
+cd ~
+mkdir local
+cd local
+ln -s /usr/bin/python3 python
+export PATH=$HOME/local/bin:$PATH
+´´´´.
+2) Now, instead of running python using the command ´´python´´, use ´´pythonX´´, where X is the version number to be used (i.e. use ´´python3´´).
+3) Enter ´´python3 --version´´ to check that it's worked.
+
+
+To install python packages: (source: https://dev.thep.lu.se/computingFAQ/software/#python-packages-through-pip)
+1) Enter ´´pip3 -install <package name> --user´´.
+I.e. For me, pandas was missing, and so I entered ´´pip3 install pandas --user´´.
+
+
+To get code running:
+1) Connect to Lema.
+2) Login to your account by following the prompts.
+3) Upload code from your PC via MobaXterm to some chosen directory by using MobaXterm's in built file explorer (on the left).
+4) Enter ´´cd ´´ followed by the desired directory, to match your Lema directory to whatever directory you're looking at in MobaXterm's in built file explorer.
+i.e. ´´cd /Documents/Bachelor-Project-ANN´´.
+5) Now we are ready to run our python file(s).
+6) Enter ´´nohup nice -n 19 python3 hello_world.py &´´, where hello_world.py is your python file.
+The purpose of ´´nohup´´ is to run the code in a way that's safe to exit - that is, you can now turn off your PC and wait for your results, if desired.
+The purpose of nice -n 19 is to make it run in low priority.
+If there is a problem with python3, then check that you have followed the previous instructions on getting the correct python version.
+7) Terminal outputs, such as print statements and errors, can be found in a file nohup.out.
+nohup.out is automatically created in the working directory.
+Created plots can only be viewed when the figure is saved.
+
+
+To enter inputs on the command line, whilst using nohup:
+1) Use ```import sys``` in hello_world.py
+2) In hello_world.py ```sys.argv[1]``` will then correspond to the first input, ```sys.argv[2]``` to the second (etc.).
+Note: Each input will default to a str.
+Note: ```sys.argv[0]``` will just be the file name.
+3) Convert the str type inputs to the desired data type in hello_world.py.
+4) Enter ```nohup nice n -19 python3 hello_world.py input1 input2 input3 &```, where the inputs are whatever inputs you wish to enter.
+
+
+To check which processes are running:
+1) Enter ´´top´´ to view all running processes.
+2) Press q to exit top.
+
+
+To kill running processes:
+1) Enter ´´top´´ to view all running processes.
+2) Press k AND STOPPPP!
+3) IMPORTANT!!! Now, enter the PID of process to be killed. RARELY IS THIS THE DEFAULT!
+4) Enter ´´15´´ to choose the way to end the process (15 is high priority, I believe).
+5) Press q to exit top.
