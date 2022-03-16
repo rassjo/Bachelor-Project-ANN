@@ -122,11 +122,10 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         d_val = val[1]
     
         #Properties of all the layers
-        #Recipe for defining a layer: [number of nodes, activation function, L2]
-        layer_defines = [[hp["hidden"], act.tanh, lambd],
-                         [1, act.sig, lambd]]
-        # Save as string for .txt.
-        # This is a disgusting way of getting the string... but it wasn't playing nice otherwise.
+        # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
+        dont_drop_rate = 0.8 # State the probability of KEEPING (because of convention) each node in a layer
+        layer_defines = [[hp["hidden"], act.tanh, lambd, dont_drop_rate],
+                        [1, act.sig, lambd, dont_drop_rate]]
         test = ann.Model(input_dim, layer_defines, ann_rng)
     
         #Check results

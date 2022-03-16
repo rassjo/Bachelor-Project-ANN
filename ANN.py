@@ -121,10 +121,10 @@ class Model:
         plt.ylabel('Error')
         plt.title('Error over epochs')
         plt.legend()
-        #plt.savefig('ErrorPlot.png')
         plt.show()
 
-    def train(self, training, validation, lrn_rate, epochs, minibatchsize=0):
+    def train(self, training, validation, lrn_rate, epochs, minibatchsize=0,
+              save_val = False, history_plot = False):
         N = len(training[0]) #number of patterns in training data
         N_val = len(validation[0]) #number of patterns in validation data
         #If minibatchsize is 0 (i.e. default), do regular gradient descent
@@ -137,7 +137,11 @@ class Model:
 
         #Number of extra patterns to be added onto the final mini-batch
         extra = N%fixed_minibatchsize
-
+        #If the loss over epochs is supposed to be displayed and the user
+        #forgot to also turn on saving validation loss after every epoch
+        if history_plot:
+            save_val = True
+            
         self.history = {'trn':[],'val':[]} #This is where we will save the loss after each epoch
 
         #Get the initial training loss
@@ -176,15 +180,18 @@ class Model:
             #We already added the loss for epoch 0 to the history, so only do
             #this for epochs 1 and beyond. Values for trn_output are added
             #in the update_weights() method to save calculation time
+            
             if epoch_nr > 0:
                 loss_array=ErrorV(self.trn_output,training[1])
                 #Calculate the average training loss of the epoch and save it
                 self.history['trn'].append(sum(loss_array)/len(loss_array))
-            #Get the validation loss for the epoch
-            self.val_output = self.feed_all_patterns(validation[0])
-            loss_array=ErrorV(np.array(self.val_output),validation[1])
-            #Calculate the average validaiton loss of the epoch and save it
-            self.history['val'].append(sum(loss_array)/len(loss_array))
+            #Get the validation loss for the epoch if that flag is on
+            #But always save the validation of the final epoch!
+            if save_val or epoch_nr == (epochs - 1):
+                self.val_output = self.feed_all_patterns(validation[0])
+                loss_array=ErrorV(np.array(self.val_output),validation[1])
+                #Calculate the average validaiton loss of the epoch and save it
+                self.history['val'].append(sum(loss_array)/len(loss_array))
 
             #Now we start a new epoch!
 
@@ -199,8 +206,9 @@ class Model:
         #actually do it after the weights have been updated for the epoch!
         #Therefore, we DON'T need an extra run through all patterns once
         #we have gone through all epochs like we do for the training data!
-
-        # self.show_history(epochs) #This will generate the "loss plot"
+        
+        if history_plot:
+            self.show_history(epochs) #This will generate the "loss plot"
 
 
 class Layer_Dense:
