@@ -20,14 +20,13 @@ self_input = rng.standard_normal(size = (dim)) # same size as dim
 
 argument = (np.dot(weights, self_input) + biases).flatten()
 
+input_w_dropout = np.ma.MaskedArray(self_input, dropout_mask, fill_value=0) 
+argument_w_dropout = (np.ma.dot(weights, input_w_dropout, strict=True) + biases).flatten()
+
 print(self_input)
 print(argument)
-
-input_w_dropout = np.ma.MaskedArray(self_input, dropout_mask, fill_value=0) 
-argument_w_dropout = (np.ma.dot(weights, input_w_dropout, strict=False) + biases).flatten()
-
 print(dropout_mask)
 print(input_w_dropout)
-print(biases)
+print("bias:" + str(biases))
 print(weights)
 print(argument_w_dropout)

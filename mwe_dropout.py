@@ -14,9 +14,9 @@ def generate_rng(seed):
         raise Exception(f'Please set a fixed seed, otherwise results will not be reproducable!')
 
 hp = {'lrn_rate': 0.1,
-      'epochs': 250,
+      'epochs': 1,
       #'lambdas': lambda_x,
-      'val_mul': 10,
+      'val_mul': 1,
       'hidden': 4,
       'dataset': 'baby'}
 lambd = 0
@@ -29,7 +29,7 @@ ann_rng = generate_rng(ann_seed)
 trn, val = sdg.generate_datasets(hp["dataset"],
                                 extra = 0,
                                 val_mul = hp["val_mul"],
-                                try_plot = True,
+                                try_plot = False,
                                 rng = data_rng)
 
 input_dim = len(trn[0][0]) #Get the input dimension from the training data
@@ -42,8 +42,8 @@ d_val = val[1]
 
 #Properties of all the layers
 # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
-layer_defines = [[hp["hidden"], act.tanh, lambd, 0.5],
-                [1, act.sig, lambd, 0.6]] # dropout applies to the inputs
+layer_defines = [[hp["hidden"], act.tanh, lambd, 0.8],
+                [1, act.sig, lambd, 0.5]] # dropout applies to the inputs
 test = ann.Model(input_dim, layer_defines, ann_rng)
 
 # 1. get dropout mask for a layer
@@ -55,11 +55,11 @@ test = ann.Model(input_dim, layer_defines, ann_rng)
 
 test.train(trn, val, hp["lrn_rate"], hp["epochs"]) #training, validation, lrn_rate, epochs, minibatchsize=0
 
-outputs = test.feed_all_patterns(x_trn) # Collect the outputs for all the inputs
+#outputs = test.feed_all_patterns(x_trn) # Collect the outputs for all the inputs
 #outputs = test.feed_all_patterns(x_val) # Collect the outputs for all the inputs
 
-for layer in test.layers:
-    print(layer.dropout_mask)
+#for layer in test.layers:
+    #print(layer.dropout_mask)
 
 #print(outputs)
     

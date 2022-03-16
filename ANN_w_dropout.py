@@ -24,18 +24,26 @@ class Model:
 
     def feed_forward(self, X):
         for layer in self.layers:
+            print("          NEW LAYER:")
             layer.input = X
             next_layer_input = layer.calc_output(X)
             X = next_layer_input
 
     def feed_all_patterns(self, patterns):
+        print("")
+        print("FEED FORWARD:")
+
         outputs = []
         for pattern in patterns:
+            print("     NEW PATTERN:")
+
             self.feed_forward(pattern) #Update the network's output...
             outputs.append(float(self.layers[-1].output)) #...and save it
         return np.array(outputs)
 
     def backpropagate(self, y, d):
+        print("")
+        print("BACK PROPAGATE:")
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
         #Prepare a place to save all the updates
@@ -56,14 +64,23 @@ class Model:
             #Previous output refers to the layer that comes before in the
             #feed-forward step
             current = self.layers[i].weights
-            prev_output = self.layers[i].input
+            #prev_output = self.layers[i].input
+            prev_output = self.layers[i].get_input_w_dropout()
+
             #Make an update matrix for the current layer
-            w_update = np.zeros(current.shape)
-            b_update = np.zeros(current.shape[0])
+            #w_update = np.zeros(current.shape)
+            #b_update = np.zeros(current.shape[0])
+            w_update = np.ma.zeros(current.shape)
+            b_update = np.ma.zeros(current.shape[0])
+
             #Equation 2.11 in FYTN14 Lecture Notes
             for row in range(0,current.shape[0]):
-                w_update[row] = deltas[row]*prev_output
+                #w_update[row] = deltas[row]*prev_output
+                w_update[row] = np.ma.dot(deltas[row], prev_output, strict=True)
                 b_update[row] = deltas[row]
+            #print("b_update: " + str(b_update))
+            #print("w_update: " + str(w_update))
+
             #Save the updates for the current layers
             all_w_updates.append(w_update) ; all_b_updates.append(b_update)
             #If we haven't reached the final layer in the backpropagation
@@ -93,8 +110,14 @@ class Model:
             #Adding updates for every pattern to the total weight updates
             all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][self.n])
             for i in range(0, len(self.layers)):
+                print("     NEW LAYER:")
                 self.weight_updates[i] += all_w_updates[i]
                 self.bias_updates[i] += all_b_updates[i]
+                print("dropout mask: " + str(self.layers[i].dropout_mask))
+                print("weight update: " + str(self.weight_updates[i]))
+                print("bias update:" + str(self.bias_updates[i]))
+            #print("weight updates: " + str(self.weight_updates))
+            #print("bias updates:" + str(self.bias_updates))
             #Save the output of each pattern for calculating the loss later
             self.trn_output[self.n] = float(self.layers[-1].output)
             self.n += 1 #Increment the counter when we go to the next pattern
@@ -231,17 +254,21 @@ class Layer_Dense:
         num_inputs = len(self.weights[0])
         self.dropout_mask = rng.choice(a=[True, False], size=num_inputs, p=[1-self.dropout_rate, self.dropout_rate]) # True means drop value, False means keep value.
 
+    def get_input_w_dropout(self):
+        input_w_dropout = np.ma.MaskedArray(self.input, self.dropout_mask, fill_value=0) 
+        return(input_w_dropout)
+
     #Calculate the output of the layer
     def calc_output(self, X):
         self.input = X
 
-        input_w_dropout = np.ma.MaskedArray(self.input, self.dropout_mask, fill_value=0) 
+        input_w_dropout = self.get_input_w_dropout()
         argument_w_dropout = (np.ma.dot(self.weights, input_w_dropout, strict=True) + self.biases).flatten()
-
         #argument = (np.dot(self.weights, self.input) + self.biases).flatten()
 
         #print("a:"+ str(argument))
-        print("awd:"+ str(argument_w_dropout))
+        print("dropout mask: " + str(self.dropout_mask))
+        print("argument w dropout: " + str(argument_w_dropout))
 
         self.output = self.activation['act'](argument_w_dropout)
         #We want to flatten the output to turn it into a 1D array, otherwise
