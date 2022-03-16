@@ -114,8 +114,8 @@ class Model:
                 self.weight_updates[i] += all_w_updates[i]
                 self.bias_updates[i] += all_b_updates[i]
                 print("dropout mask: " + str(self.layers[i].dropout_mask))
-                print("weight update: " + str(self.weight_updates[i]))
-                print("bias update:" + str(self.bias_updates[i]))
+                print("weight update: " + str(all_w_updates[i]))
+                print("bias update:" + str(all_b_updates[i]))
             #print("weight updates: " + str(self.weight_updates))
             #print("bias updates:" + str(self.bias_updates))
             #Save the output of each pattern for calculating the loss later
@@ -167,6 +167,9 @@ class Model:
             
         self.history = {'trn':[],'val':[]} #This is where we will save the loss after each epoch
 
+        # Temporarily turn off dropout (for loss stuff)
+        for layer in self.layers:
+            layer.refresh_dropout_mask(override_dropout_rate = 1)
         #Get the initial training loss
         self.trn_output = self.feed_all_patterns(training[0])
         loss_array=ErrorV(np.array(self.trn_output),training[1])
@@ -179,6 +182,10 @@ class Model:
 
         #This loop is for going through the desired amount of epochs
         for epoch_nr in range(0, epochs):
+            # Refresh the dropout mask for each layer.
+            for layer in self.layers:
+                layer.refresh_dropout_mask()
+
             #This is where we save results after each training pattern
             self.trn_output = np.zeros(N)
             self.n = 0 #This will keep track of which pattern we are at during the epoch
@@ -211,6 +218,10 @@ class Model:
             #Get the validation loss for the epoch if that flag is on
             #But always save the validation of the final epoch!
             if save_val or epoch_nr == (epochs - 1):
+                # Temporarily turn off dropout (for loss stuff)
+                for layer in self.layers:
+                    layer.refresh_dropout_mask(override_dropout_rate = 1)
+
                 self.val_output = self.feed_all_patterns(validation[0])
                 loss_array=ErrorV(np.array(self.val_output),validation[1])
                 #Calculate the average validaiton loss of the epoch and save it
@@ -237,7 +248,7 @@ class Model:
 class Layer_Dense:
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
-    def __init__(self, dim, nodes, activation, l2_s, dropout_rate=1, rng=np.random.default_rng()):
+    def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 1, rng = np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
         self.w_size = self.weights.shape
@@ -247,12 +258,16 @@ class Layer_Dense:
         self.input = None
         self.output = None
         self.dropout_rate = dropout_rate # probability that a given input node is dropped
-        self.refresh_dropout_mask(rng)
+        self.refresh_dropout_mask(override_dropout_rate=1, rng=rng)
 
-    def refresh_dropout_mask(self, rng=np.random.default_rng()):
+    def refresh_dropout_mask(self, override_dropout_rate = None, rng = np.random.default_rng()):
         # Mask is the same length as the number of inputs, it is applied to each input. (essentially acts on the previous layer)
+        dropout_rate = self.dropout_rate
+        if not isinstance(override_dropout_rate, type(None)):
+            dropout_rate = override_dropout_rate
+
         num_inputs = len(self.weights[0])
-        self.dropout_mask = rng.choice(a=[True, False], size=num_inputs, p=[1-self.dropout_rate, self.dropout_rate]) # True means drop value, False means keep value.
+        self.dropout_mask = rng.choice(a=[True, False], size=num_inputs, p=[1-dropout_rate, dropout_rate]) # True means drop value, False means keep value.
 
     def get_input_w_dropout(self):
         input_w_dropout = np.ma.MaskedArray(self.input, self.dropout_mask, fill_value=0) 

@@ -42,8 +42,8 @@ d_val = val[1]
 
 #Properties of all the layers
 # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
-layer_defines = [[hp["hidden"], act.tanh, lambd, 0.8],
-                [1, act.sig, lambd, 0.5]] # dropout applies to the inputs
+layer_defines = [[hp["hidden"], act.tanh, lambd, 0.4],
+                [1, act.sig, lambd, 0.4]] # dropout applies to the inputs
 test = ann.Model(input_dim, layer_defines, ann_rng)
 
 # 1. get dropout mask for a layer
