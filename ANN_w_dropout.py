@@ -8,15 +8,12 @@ import sys
 import warnings
 
 
-debugging = True
+debugging = False
 #Remember:
 #Weights on the same ROW act on the same node
 #Weights on the same COLUMN come from the same node
 
 # To do:
-# 0. check that the dropout is still working as expected!
-# 1. clean up the code! remove commented code!
-# 2. get error plot with dropout
 # 3. get the same optimal lambda plot, but with dropout 
 
 class Model:
@@ -73,13 +70,12 @@ class Model:
         for i in range(0, num_layers):
             layer = self.layers[i]
             print("     NEW LAYER:") if debugging else None
+
             #For the current layer we need to know the weights
             #Previous output refers to the layer that comes before in the
             #feed-forward step
             current = layer.weights
-            #prev_output = self.layers[i].input
             prev_output = layer.get_input_w_dropout()
-
             print("          dropout mask: " + str(layer.dropout_mask)) if debugging else None
             print("          input w dropout: " + str(layer.get_input_w_dropout())) if debugging else None
             print("          bias: " + str(layer.biases)) if debugging else None
@@ -131,13 +127,6 @@ class Model:
                 #print("     NEW LAYER:")
                 self.weight_updates[i] += all_w_updates[i]
                 self.bias_updates[i] += all_b_updates[i]
-                #print("dropout mask: " + str(self.layers[i].dropout_mask))
-                #print("weight update: " + str(all_w_updates[i]))
-                #print("bias update:" + str(all_b_updates[i]))
-            #print("weight updates: " + str(self.weight_updates))
-            #print("bias updates:" + str(self.bias_updates))
-            #Save the output of each pattern for calculating the loss later
-            #self.trn_output[self.n] = float(self.layers[-1].output)
             self.trn_output[self.n] = self.layers[-1].output[0]
             self.n += 1 #Increment the counter when we go to the next pattern
 
@@ -192,7 +181,6 @@ class Model:
             
         self.history = {'trn':[],'val':[]} #This is where we will save the loss after each epoch
 
-
         # Temporarily turn off dropout (for loss stuff)
         for layer in self.layers:
             layer.disable_dropout()
@@ -216,7 +204,7 @@ class Model:
             # Refresh the dropout mask for each layer.
             for layer in self.layers:
                 layer.enable_dropout()
-                print("dropout_enabled: " + str(layer.dropout_enabled))
+                print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
                 layer.generate_dropout_mask(rng=self.rng)
 
             #This is where we save results after each training pattern
