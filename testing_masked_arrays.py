@@ -9,12 +9,15 @@ weights = rng.standard_normal(size = (nodes, dim))
 biases = rng.standard_normal(size = (1, nodes))
 #biases = np.array([0, 0, 0, 0])
 dropout_mask = rng.choice(a=[False, True], size=dim, p=[0.5, 0.5]) # True means drop value, False means keep value.
-""" This might be a useful check to see if all elements are dropped, then use a new mask instead.
-result = np.all(dropout_mask == True)
-if (result): # Need to turn this into a loop
-    print("all elements in mask were true, trying again.")
-    dropout_mask = rng.choice(a=[False, True], size=dim, p=[0.5, 0.5]) # True means drop value, False means keep value.
-"""
+
+# This might be a useful check to see if all elements are dropped, then use a new mask instead.
+
+is_all_dropped = True
+while is_all_dropped:
+    dropout_mask = rng.choice(a=[False, True], size=dim, p=[0.1, 0.9]) # True means drop value, False means keep value.
+    is_all_dropped = np.all(dropout_mask == True)
+    print("All elements in the dropout mask were True, regenerating dropout mask.")
+
 
 self_input = rng.standard_normal(size = (dim)) # same size as dim
 

@@ -14,14 +14,14 @@ def generate_rng(seed):
         raise Exception(f'Please set a fixed seed, otherwise results will not be reproducable!')
 
 hp = {'lrn_rate': 0.1,
-      'epochs': 1,
+      'epochs': 2,
       #'lambdas': lambda_x,
       'val_mul': 1,
       'hidden': 4,
       'dataset': 'baby'}
 lambd = 0
 
-data_seed = ann_seed = 5
+data_seed = ann_seed = 6
 data_rng = generate_rng(data_seed)
 ann_rng = generate_rng(ann_seed)
 
@@ -42,8 +42,8 @@ d_val = val[1]
 
 #Properties of all the layers
 # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
-layer_defines = [[hp["hidden"], act.tanh, lambd, 0.4],
-                [1, act.sig, lambd, 0.4]] # dropout applies to the inputs
+layer_defines = [[hp["hidden"], act.tanh, lambd, 0.5],
+                [1, act.sig, lambd, 0.5]] # dropout applies to the inputs
 test = ann.Model(input_dim, layer_defines, ann_rng)
 
 # 1. get dropout mask for a layer

@@ -1,49 +1,60 @@
+from logging import exception
 import numpy as np
 import activation_functions as act
 import synthetic_data_generation as sdg
 import classification_statistics as cs
 import matplotlib.pyplot as plt
+import sys
+import warnings
 
+
+debugging = True
 #Remember:
 #Weights on the same ROW act on the same node
 #Weights on the same COLUMN come from the same node
+
+# To do:
+# 0. check that the dropout is still working as expected!
+# 1. clean up the code! remove commented code!
+# 2. get error plot with dropout
+# 3. get the same optimal lambda plot, but with dropout 
 
 class Model:
     def __init__(self, input_dim, layer_defines, rng=np.random.default_rng()):
         self.layers = [] #This is where we'll put all the layers we make
         columns = input_dim #Number of columns to use for the first weight matrix
+        self.rng = rng
         #Make as many layers as we have defined properties for
         for layer_properties in layer_defines:
             #Create a dense layer
             self.layers.append(Layer_Dense(columns,*layer_properties,
-                                           rng = rng))
+                                           rng = self.rng))
             #Then we want to know how many columns the weight matrix in the
             #next layer should have, by looking at how many rows (i.e. how the
             #many nodes) the current one has.
             columns = self.layers[-1].weights.shape[0]
 
     def feed_forward(self, X):
+        print("FEED FORWARD PATTERN:") if debugging else None
         for layer in self.layers:
-            print("          NEW LAYER:")
+            print("     NEW LAYER:") if debugging else None
             layer.input = X
             next_layer_input = layer.calc_output(X)
+            print("          dropout mask: " + str(layer.dropout_mask)) if debugging else None
+            print("          input w dropout: " + str(layer.get_input_w_dropout())) if debugging else None
+            print("          bias: " + str(layer.biases)) if debugging else None
+            print("          output: " + str(next_layer_input)) if debugging else None
             X = next_layer_input
 
     def feed_all_patterns(self, patterns):
-        print("")
-        print("FEED FORWARD:")
-
         outputs = []
         for pattern in patterns:
-            print("     NEW PATTERN:")
-
             self.feed_forward(pattern) #Update the network's output...
             outputs.append(float(self.layers[-1].output)) #...and save it
         return np.array(outputs)
 
     def backpropagate(self, y, d):
-        print("")
-        print("BACK PROPAGATE:")
+        print("BACK PROPAGATE PATTERN:") if debugging else None
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
         #Prepare a place to save all the updates
@@ -60,12 +71,18 @@ class Model:
         deltas = loss(y,d)
         #Now we want to calculate the update for all weights, layer by layer
         for i in range(0, num_layers):
+            layer = self.layers[i]
+            print("     NEW LAYER:") if debugging else None
             #For the current layer we need to know the weights
             #Previous output refers to the layer that comes before in the
             #feed-forward step
-            current = self.layers[i].weights
+            current = layer.weights
             #prev_output = self.layers[i].input
-            prev_output = self.layers[i].get_input_w_dropout()
+            prev_output = layer.get_input_w_dropout()
+
+            print("          dropout mask: " + str(layer.dropout_mask)) if debugging else None
+            print("          input w dropout: " + str(layer.get_input_w_dropout())) if debugging else None
+            print("          bias: " + str(layer.biases)) if debugging else None
 
             #Make an update matrix for the current layer
             #w_update = np.zeros(current.shape)
@@ -78,8 +95,8 @@ class Model:
                 #w_update[row] = deltas[row]*prev_output
                 w_update[row] = np.ma.dot(deltas[row], prev_output, strict=True)
                 b_update[row] = deltas[row]
-            #print("b_update: " + str(b_update))
-            #print("w_update: " + str(w_update))
+            print("          bias update: " + str(b_update)) if debugging else None
+            print("          weight update: " + str(w_update)) if debugging else None
 
             #Save the updates for the current layers
             all_w_updates.append(w_update) ; all_b_updates.append(b_update)
@@ -109,17 +126,19 @@ class Model:
             self.feed_forward(training[0][self.n])
             #Adding updates for every pattern to the total weight updates
             all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][self.n])
+
             for i in range(0, len(self.layers)):
-                print("     NEW LAYER:")
+                #print("     NEW LAYER:")
                 self.weight_updates[i] += all_w_updates[i]
                 self.bias_updates[i] += all_b_updates[i]
-                print("dropout mask: " + str(self.layers[i].dropout_mask))
-                print("weight update: " + str(all_w_updates[i]))
-                print("bias update:" + str(all_b_updates[i]))
+                #print("dropout mask: " + str(self.layers[i].dropout_mask))
+                #print("weight update: " + str(all_w_updates[i]))
+                #print("bias update:" + str(all_b_updates[i]))
             #print("weight updates: " + str(self.weight_updates))
             #print("bias updates:" + str(self.bias_updates))
             #Save the output of each pattern for calculating the loss later
-            self.trn_output[self.n] = float(self.layers[-1].output)
+            #self.trn_output[self.n] = float(self.layers[-1].output)
+            self.trn_output[self.n] = self.layers[-1].output[0]
             self.n += 1 #Increment the counter when we go to the next pattern
 
         #Now we have all of the weight updates for the current mini-batch!
@@ -131,8 +150,14 @@ class Model:
           layer = self.layers[i] #Current layer
           #Update the weights with the result from backpropagation and
           #the derivative of the L2-term
+          print("OLD:") if debugging else None
+          print("weights: " + str(layer.weights)) if debugging else None
+          print("biases: " + str(layer.biases)) if debugging else None
           layer.weights -= (lrn_rate*self.weight_updates[i]/minibatchsize + layer.l2_s*layer.weights)
           layer.biases -= lrn_rate*self.bias_updates[i]/minibatchsize
+          print("NEW:") if debugging else None
+          print("weights: " + str(layer.weights)) if debugging else None
+          print("biases: " + str(layer.biases)) if debugging else None
         self.layers.reverse() #Return to original order
 
     def show_history(self,epochs):
@@ -167,14 +192,19 @@ class Model:
             
         self.history = {'trn':[],'val':[]} #This is where we will save the loss after each epoch
 
+
         # Temporarily turn off dropout (for loss stuff)
         for layer in self.layers:
-            layer.refresh_dropout_mask(override_dropout_rate = 1)
+            layer.disable_dropout()
+            print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
+        
+        print("\nInitial training loss (dropout off)") if debugging else None
         #Get the initial training loss
         self.trn_output = self.feed_all_patterns(training[0])
         loss_array=ErrorV(np.array(self.trn_output),training[1])
         self.history['trn'].append(sum(loss_array)/N)
 
+        print("\nInitial validation loss (dropout off)") if debugging else None
         #Get the initial validation loss
         self.val_output = self.feed_all_patterns(validation[0])
         loss_array=ErrorV(np.array(self.val_output),validation[1])
@@ -182,12 +212,15 @@ class Model:
 
         #This loop is for going through the desired amount of epochs
         for epoch_nr in range(0, epochs):
+            print(f"\nEpoch {epoch_nr + 1} (dropout on)") if debugging else None
             # Refresh the dropout mask for each layer.
             for layer in self.layers:
-                layer.refresh_dropout_mask()
+                layer.enable_dropout()
+                print("dropout_enabled: " + str(layer.dropout_enabled))
+                layer.generate_dropout_mask(rng=self.rng)
 
             #This is where we save results after each training pattern
-            self.trn_output = np.zeros(N)
+            self.trn_output = np.ma.zeros(N)
             self.n = 0 #This will keep track of which pattern we are at during the epoch
             #These lines randomize the pattern order for each new epoch
             p = np.random.permutation(len(training[0]))
@@ -219,8 +252,10 @@ class Model:
             #But always save the validation of the final epoch!
             if save_val or epoch_nr == (epochs - 1):
                 # Temporarily turn off dropout (for loss stuff)
+                print("\nFinal validation loss (dropout off)") if debugging else None
                 for layer in self.layers:
-                    layer.refresh_dropout_mask(override_dropout_rate = 1)
+                    layer.disable_dropout()
+                    print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
 
                 self.val_output = self.feed_all_patterns(validation[0])
                 loss_array=ErrorV(np.array(self.val_output),validation[1])
@@ -229,6 +264,7 @@ class Model:
 
             #Now we start a new epoch!
 
+        print("\nFinal training loss (dropout off)") if debugging else None
         #Calculate the error after the final weight update without updating
         #the weights further to complete the history list
         self.trn_output = self.feed_all_patterns(training[0])
@@ -246,9 +282,9 @@ class Model:
 
 
 class Layer_Dense:
-    #Initialize the dense layer with inputs random weights & biases and
-    #the right activation function
-    def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 1, rng = np.random.default_rng()):
+    # Initialize the dense layer with inputs random weights & biases and
+    # the right activation function, and a 
+    def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 0, rng = np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
         self.w_size = self.weights.shape
@@ -257,35 +293,67 @@ class Layer_Dense:
         self.l2_s = l2_s
         self.input = None
         self.output = None
-        self.dropout_rate = dropout_rate # probability that a given input node is dropped
-        self.refresh_dropout_mask(override_dropout_rate=1, rng=rng)
+        self.enable_dropout()
+        self.set_dropout_rate(dropout_rate)
+        self.generate_dropout_mask(rng=rng)
 
-    def refresh_dropout_mask(self, override_dropout_rate = None, rng = np.random.default_rng()):
-        # Mask is the same length as the number of inputs, it is applied to each input. (essentially acts on the previous layer)
+    # Enable dropout
+    def enable_dropout(self):
+        self.dropout_enabled = True
+
+    # Disable dropout
+    def disable_dropout(self):
+        self.dropout_enabled = False
+
+    # Set dropout rate
+    def set_dropout_rate(self, dropout_rate):
+        if (dropout_rate == 1):
+            warnings.warn("You are using a dropout rate of 1, meaning all nodes are being dropped.")
+        self.dropout_rate = dropout_rate
+
+    # Generate the dropout mask using the layers dropout_rate parameters
+    # The dropout mask is a numpy array the size of the input layer
+    # The dropout mask is not applied to the layer itself, but to the input
+    # -- this is due to the initial input layer not being defined as a layer, but needing dropout capability
+    def generate_dropout_mask(self, rng = np.random.default_rng()):
+        # Get dropout rate
         dropout_rate = self.dropout_rate
-        if not isinstance(override_dropout_rate, type(None)):
-            dropout_rate = override_dropout_rate
 
+        # Get number of inputs, for use in setting the size of the dropout mask
         num_inputs = len(self.weights[0])
-        self.dropout_mask = rng.choice(a=[True, False], size=num_inputs, p=[1-dropout_rate, dropout_rate]) # True means drop value, False means keep value.
 
+        # Generate dropout mask
+        is_all_dropped = True
+        while is_all_dropped:
+            # Generate dropout mask, until the generated mask keeps at least one value
+            # (True means drop value, False means keep value)
+            self.dropout_mask = rng.choice(a=[False, True], size=num_inputs, p=[1-dropout_rate, dropout_rate])
+            is_all_dropped = np.all(self.dropout_mask == True)
+            # If dropout_rate is 1, then all MUST be dropped, so don't try to keep at least one value
+            if (dropout_rate == 1):
+                break
+
+    # Get the input with the dropout applied
+    # If dropout is disabled, then a temporary dropout mask which keeps all is used
     def get_input_w_dropout(self):
-        input_w_dropout = np.ma.MaskedArray(self.input, self.dropout_mask, fill_value=0) 
+        dropout_mask = self.dropout_mask
+        if not self.dropout_enabled:
+            # Do not drop any nodes if dropout is disabled
+            dropout_mask = np.full(self.dropout_mask.size, False)
+    
+        # Create a masked array by applying the dropout_mask to the input
+        input_w_dropout = np.ma.MaskedArray(self.input, dropout_mask, fill_value=0) 
         return(input_w_dropout)
 
-    #Calculate the output of the layer
+    # Calculate the output of the layer
     def calc_output(self, X):
         self.input = X
-
+        # Get the input with the dropout mask applied
         input_w_dropout = self.get_input_w_dropout()
-        argument_w_dropout = (np.ma.dot(self.weights, input_w_dropout, strict=True) + self.biases).flatten()
-        #argument = (np.dot(self.weights, self.input) + self.biases).flatten()
-
-        #print("a:"+ str(argument))
-        print("dropout mask: " + str(self.dropout_mask))
-        print("argument w dropout: " + str(argument_w_dropout))
-
-        self.output = self.activation['act'](argument_w_dropout)
+        # Calculate the argument(s) of the layer
+        # NOTE that dropout is not applied to biases, but that 
+        argument = (np.ma.dot(self.weights, input_w_dropout, strict=True) + self.biases).flatten()
+        self.output = self.activation['act'](argument)
         #We want to flatten the output to turn it into a 1D array, otherwise
         #it will be a 2D array which causes problems when we want to check
         #the input dimension to set up the next layer.
