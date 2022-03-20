@@ -14,7 +14,7 @@ debugging = False
 #Weights on the same COLUMN come from the same node
 
 # To do:
-# 3. get the same optimal lambda plot, but with dropout 
+# 1. prevent extra feed-forward, unless debugging
 
 class Model:
     def __init__(self, input_dim, layer_defines, rng=np.random.default_rng()):
@@ -158,7 +158,7 @@ class Model:
         plt.ylabel('Error')
         plt.title('Error over epochs')
         plt.legend()
-        plt.show()
+        plt.draw()
 
     def train(self, training, validation, lrn_rate, epochs, minibatchsize=0,
               save_val = False, history_plot = False):
@@ -198,13 +198,17 @@ class Model:
         loss_array=ErrorV(np.array(self.val_output),validation[1])
         self.history['val'].append(sum(loss_array)/N_val)
 
+        # Temporarily enable dropout (for loss stuff)
+        for layer in self.layers:
+            layer.enable_dropout()
+            print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
+
         #This loop is for going through the desired amount of epochs
         for epoch_nr in range(0, epochs):
             print(f"\nEpoch {epoch_nr + 1} (dropout on)") if debugging else None
             # Refresh the dropout mask for each layer.
             for layer in self.layers:
                 layer.enable_dropout()
-                print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
                 layer.generate_dropout_mask(rng=self.rng)
 
             #This is where we save results after each training pattern
@@ -233,7 +237,14 @@ class Model:
             #in the update_weights() method to save calculation time
             
             if epoch_nr > 0:
+                # Temporarily turn off dropout (for loss stuff)
+                for layer in self.layers:
+                    layer.disable_dropout()
+                self.trn_output = self.feed_all_patterns(training[0]) # feed forward with dropout off
                 loss_array=ErrorV(self.trn_output,training[1])
+                # Turn back on dropout
+                for layer in self.layers:
+                    layer.enable_dropout()
                 #Calculate the average training loss of the epoch and save it
                 self.history['trn'].append(sum(loss_array)/len(loss_array))
             #Get the validation loss for the epoch if that flag is on
@@ -243,10 +254,11 @@ class Model:
                 print("\nFinal validation loss (dropout off)") if debugging else None
                 for layer in self.layers:
                     layer.disable_dropout()
-                    print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
-
                 self.val_output = self.feed_all_patterns(validation[0])
                 loss_array=ErrorV(np.array(self.val_output),validation[1])
+                # Turn back on dropout
+                for layer in self.layers:
+                    layer.enable_dropout()
                 #Calculate the average validaiton loss of the epoch and save it
                 self.history['val'].append(sum(loss_array)/len(loss_array))
 
@@ -255,8 +267,12 @@ class Model:
         print("\nFinal training loss (dropout off)") if debugging else None
         #Calculate the error after the final weight update without updating
         #the weights further to complete the history list
+        for layer in self.layers:
+            layer.disable_dropout()
         self.trn_output = self.feed_all_patterns(training[0])
         loss_array=ErrorV(np.array(self.trn_output),training[1])
+        for layer in self.layers:
+            layer.enable_dropout()
         #Calculate the average training loss of the epoch and save it
         self.history['trn'].append(sum(loss_array)/len(loss_array))
 
@@ -272,7 +288,7 @@ class Model:
 class Layer_Dense:
     # Initialize the dense layer with inputs random weights & biases and
     # the right activation function, and a 
-    def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 0, rng = np.random.default_rng()):
+    def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 1, rng = np.random.default_rng()):
         self.weights = rng.standard_normal(size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
         self.w_size = self.weights.shape
@@ -295,8 +311,8 @@ class Layer_Dense:
 
     # Set dropout rate
     def set_dropout_rate(self, dropout_rate):
-        if (dropout_rate == 1):
-            warnings.warn("You are using a dropout rate of 1, meaning all nodes are being dropped.")
+        if (dropout_rate == 0):
+            warnings.warn("You are using a dropout rate of 0, meaning all nodes are being dropped.")
         self.dropout_rate = dropout_rate
 
     # Generate the dropout mask using the layers dropout_rate parameters
@@ -315,10 +331,10 @@ class Layer_Dense:
         while is_all_dropped:
             # Generate dropout mask, until the generated mask keeps at least one value
             # (True means drop value, False means keep value)
-            self.dropout_mask = rng.choice(a=[False, True], size=num_inputs, p=[1-dropout_rate, dropout_rate])
+            self.dropout_mask = rng.choice(a=[False, True], size=num_inputs, p=[dropout_rate, 1-dropout_rate])
             is_all_dropped = np.all(self.dropout_mask == True)
-            # If dropout_rate is 1, then all MUST be dropped, so don't try to keep at least one value
-            if (dropout_rate == 1):
+            # If dropout_rate is 0, then all MUST be dropped, so don't try to keep at least one value
+            if (dropout_rate == 0):
                 break
 
     # Get the input with the dropout applied

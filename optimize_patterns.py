@@ -1,4 +1,4 @@
-import ANN as ann
+import ANN_w_dropout as ann
 import numpy as np
 import activation_functions as act
 import synthetic_data_generation as sdg
@@ -42,31 +42,34 @@ def check_layers(model):
     print("Biases:", biases)
 
 #For lambda
-number_to_try = 5
+number_to_try = 12
 
 #For patterns
-numPatterns = 4 #how many (extra) times we make a new number of patterns
+#numPatterns = 10 #how many (extra) times we make a new number of patterns
+numPatterns = 0
 
 #For the model
 minibatchsize = 0 #0 if we don't want to use minibatches
 
-lambda_x = [0.00001*10**(int(0.25*i))*2**(i%4) for i in range(0,number_to_try)]
+#lambda_x = [0.00001*10**(int(1/3*i))*2**(i%3) for i in range(0,number_to_try)]
+lambda_x = [0]
 
 hp = {'lrn_rate': 0.1,
-      'epochs': 10,
+      'epochs': 500,
       'lambdas': lambda_x,
-      'val_mul': 10,
+      'val_mul': 5,
       'hidden': 15,
+      'dropout': 0.9, # The probability of KEEPing a node (applies to input nodes and middle nodes)
       'dataset': 'lagom'}
 
 # For inputting seed from the command line. (i.e. use ```nohup nice n -19 python3 optimize_patterns.py seed &```, where seed is an integer).
-seed = -1
+seed = 1
 try:
   seed = int(sys.argv[1])
 except TypeError:
   warnings.warn("Seed input was not an integer. Using random seed instead.")
 except:
-  warnings.warn("Seed input was missing. Using random seed instead.")
+  warnings.warn(f"Seed input was missing. Using default seed ({seed}) instead.")
 
 #For hyperparameters in .txt
 
@@ -123,9 +126,8 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
     
         #Properties of all the layers
         # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
-        dont_drop_rate = 0.8 # State the probability of KEEPING (because of convention) each node in a layer
-        layer_defines = [[hp["hidden"], act.tanh, lambd, dont_drop_rate],
-                        [1, act.sig, lambd, dont_drop_rate]]
+        layer_defines = [[hp["hidden"], act.tanh, lambd, hp["dropout"]],
+                        [1, act.sig, lambd, hp["dropout"]]]
         test = ann.Model(input_dim, layer_defines, ann_rng)
     
         #Check results
@@ -137,8 +139,8 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         # plt.show()
         # plt.clf()
     
-        test.train(trn,val,hp["lrn_rate"],hp["epochs"],minibatchsize) #training, validation, lrn_rate, epochs, minibatchsize=0
-    
+        test.train(trn,val,hp["lrn_rate"],hp["epochs"],minibatchsize,history_plot=True) #training, validation, lrn_rate, epochs, minibatchsize=0
+
         #Check results again
         answer2 = check_results(test, False)
     
@@ -179,16 +181,16 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         f.write("$ " + str(lambda_x[valy.index(min(valy))]) + " ; " + str(len(trn[0])) + "\n")
     
     #The loss for each lambda is plotted once for every new number of patterns
-    # plt.figure()
-    # plt.plot(lambda_x, trainy, 'go', label='error after train vs lambd')
-    # plt.plot(lambda_x, valy, 'bo', label='Validation error vs lambd')
-    # plt.xlabel('lambdas')
-    # plt.ylabel('Error')
-    # plt.title(f'Error over lambdas for {extra_patterns} extra patterns')
-    # plt.legend()
-    # plt.savefig(f'error_lambda_plot_{extra_patterns}_extra_patterns.png')
-    # plt.show()
-    # plt.clf()
+    plt.figure()
+    plt.plot(lambda_x, trainy, 'go', label='error after train vs lambd')
+    plt.plot(lambda_x, valy, 'bo', label='Validation error vs lambd')
+    plt.xlabel('lambdas')
+    plt.ylabel('Error')
+    plt.title(f'Error over lambdas for {extra_patterns} extra patterns w dropout ' + str(hp["dropout"]))
+    plt.legend()
+    plt.savefig(f'error_lambda_plot_{extra_patterns}_extra_patterns.png')
+    plt.show()
+    plt.clf()
     
     # Construct a list of training and validation accuracies from the lambd_to_cms dictionary
     acc_trn = []
@@ -200,16 +202,16 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
         acc_val.append(stats_val[0]["advanced"]["acc"])
         
     # Plot the accuracy over lambda plot
-    # plt.figure()
-    # plt.plot(lambda_x, acc_trn, "go", label="Training")
-    # plt.plot(lambda_x, acc_val, "bo", label="Validation")
-    # plt.xlabel("$\lambda$")
-    # plt.ylabel("Accuracy")
-    # plt.title("Accuracy over " + "$\lambda$" + " for " + str(extra_patterns) + " extra patterns")
-    # plt.legend()
-    # plt.savefig(f'accuracy_lambda_plot_{extra_patterns}_extra_patterns.png')
-    # plt.show()
-    # plt.clf()
+    plt.figure()
+    plt.plot(lambda_x, acc_trn, "go", label="Training")
+    plt.plot(lambda_x, acc_val, "bo", label="Validation")
+    plt.xlabel("$\lambda$")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy over " + "$\lambda$" + " for " + str(extra_patterns) + " extra patterns w dropout " + str(hp["dropout"]))
+    plt.legend()
+    plt.savefig(f'accuracy_lambda_plot_{extra_patterns}_extra_patterns_dropout.png')
+    plt.show()
+    plt.clf()
 
 #The best lambda for each number of patterns is plotted
 # plt.figure()
@@ -218,6 +220,6 @@ for i in range(0,numPatterns+1): #range for the numbers of patterns
 # plt.ylabel('best lambdas')
 # plt.title('best lambdas vs # patterns')
 # plt.legend()
-# plt.savefig('patterns_lambda_plot_' + str(seed) +'.png')
+# plt.savefig(f'patterns_lambda_plot_{seed}_dropout.png')
 # plt.show()
 # plt.clf()

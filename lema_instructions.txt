@@ -60,7 +60,7 @@ To enter inputs on the command line, whilst using nohup:
 Note: Each input will default to a str.
 Note: ```sys.argv[0]``` will just be the file name.
 3) Convert the str type inputs to the desired data type in hello_world.py.
-4) Enter ```nohup nice n -19 python3 hello_world.py input1 input2 input3 &```, where the inputs are whatever inputs you wish to enter.
+4) Enter ```nohup nice -n 19 python3 hello_world.py input1 input2 input3 &```, where the inputs are whatever inputs you wish to enter.
 
 
 To check which processes are running:
