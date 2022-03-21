@@ -10,7 +10,7 @@ import os
 
 """
 To do:
-2. Read about dropout and L2 together from the dropout paper, to figure out why it isn't working better in comparison for the optimal. OHHH maybe that's something, the optimal doesn't get improved!! Just non-optimal values... hmmm. why is dropout only better 50% of time...? is it?
+
 """
 
 def create_local_dir(new_local_dir):
@@ -51,7 +51,7 @@ static_hps = {'lrn_rate': 0.1,
       'epochs': 500,
       'val_mul': 5,
       'hidden': 15,
-      'dataset': 'lagom'}
+      'dataset': 'lagom_harder'}
 variable_hps = {'dropout': 1, # The probability of KEEPing a node (applies to input nodes and middle nodes)
       'l2': 0,}
 
@@ -90,7 +90,7 @@ write_hyperparameters(txt_name, static_hps, static_hps_id, data_seed)
 
 # Define the range of dropout rates and l2 strengths to try
 dropout_range = [0.5, 1]
-l2_range = [0, 1]
+l2_range = [10e-6, 1]
 
 # Create a dictionary of {dropout: {l2: validation_loss}}
 grid_search = {}
@@ -121,12 +121,12 @@ while i < 50: # Essentially while True... just a bit safer, in case I die and ne
     variable_hps['dropout'] = dropout
 
     # Generate random l2 strength from the half-open interval [l2_range[0], l2_range[1])
-    is_l2_in_range = False
-    while is_l2_in_range == False: # This could go bad... Not really happy with the chosen distribution
-        l2 = search_rng.lognormal(mean = -3, sigma = 3.5) # Generate a random number from a log-normal distribution
-        is_l2_in_range = l2 > l2_range[0] and l2 < l2_range[1]
-    l2 *= (l2_range[1] - l2_range[0]) # Reduce the range
-    l2 += l2_range[0] # Displace the range
+    # Creating a distribution that is uniform in log10
+    l2_pow_range = np.log10(l2_range)
+    l2_pow = search_rng.random() # Generate uniformly distributed random number from the half-open interval [0, 1)
+    l2_pow *= (l2_pow_range[1] - l2_pow_range[0]) # Reduce the range
+    l2_pow += l2_pow_range[0] # Displace the range
+    l2 = 10**l2_pow # Use the random number to generate log uniform l2
     variable_hps['l2'] = l2
 
     # Regenerate the ann rng from the fixed seed
@@ -139,7 +139,7 @@ while i < 50: # Essentially while True... just a bit safer, in case I die and ne
     ann_model = ann.Model(input_dim, layer_defines, ann_rng)
 
     # Train the network
-    ann_model.train(trn, val, static_hps['lrn_rate'], static_hps['epochs'], 0, history_plot=True)
+    ann_model.train(trn, val, static_hps['lrn_rate'], static_hps['epochs'], 0, history_plot=False)
 
     # Get final validation loss
     fin_val_loss = ann_model.history['val'][-1] 
@@ -149,7 +149,7 @@ while i < 50: # Essentially while True... just a bit safer, in case I die and ne
         f.write(f'$ {dropout} ; {l2} ; {fin_val_loss}\n')
 
     # Save the error over epochs plot
-    plt.savefig(f'{results_dir}/{id_dir}/{seed_dir}/error-over-epochs_dropout-{dropout}_l2-{l2}.png') # Change to .pdf when generating images for thesis
+    #plt.savefig(f'{results_dir}/{id_dir}/{seed_dir}/error-over-epochs_dropout-{dropout}_l2-{l2}.png') # Change to .pdf when generating images for thesis
 
     # Increment counter
     i += 1
