@@ -20,10 +20,11 @@ WARNING:
 WARNING:
     THIS HAS NOT BEEN TESTED ON MULTI-CLASS CLASSIFICATION DATA.
 """
+from pickle import NONE
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-
+import ANN as ann
 
 def get_fundamental_class_metrics(confusion_matrix, class_num):
     """
@@ -513,3 +514,53 @@ def stats(outputs, targets, data_name='<data_name placeholder>',
                                              should_plot_cm)
     
     return statistics
+
+def decision_boundary(patterns, targets, model, precision = 0.025):
+    """
+    For binary classification problems only.
+    Precision is the grid step-size from which the decision boundary is created.
+    """
+    input_dim = len(patterns[0])
+    if (input_dim != 2): # Only plot if it is a 2-dimensional problem
+        return None
+
+    x_min, x_max = patterns[:, 0].min() - .5, patterns[:, 0].max() + .5
+    y_min, y_max = patterns[:, 1].min() - .5, patterns[:, 1].max() + .5
+
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, precision), np.arange(y_min, y_max, precision))
+    Z = model.feed_all_patterns(np.c_[xx.ravel(), yy.ravel()])
+
+    Z = Z.reshape(xx.shape)
+    
+    Z[Z>.5] = 1
+    Z[Z<= .5] = 0
+
+    Y_pr = model.feed_all_patterns(patterns).reshape(targets.shape)
+  
+    Y = np.copy(targets)
+    Y_pr[Y_pr>.5] = 1
+    Y_pr[Y_pr<= .5] = 0
+    Y[(Y!=Y_pr) & (Y==0)] = 2
+    Y[(Y!=Y_pr) & (Y==1)] = 3
+    
+    plt.figure()
+
+    # Create countor line
+    colour_map = 'brg' #plt.cm.PRGn
+    plt.contourf(xx, yy, Z, cmap=colour_map, alpha = .25) # Region-coloured background
+    #plt.contour(xx, yy, Z, cmap=plt.cm.Paired) # Transparent background
+    
+    # Markers: Circles 'o', squares 's', triangles '^'
+
+    # Plot correct predictions
+    plt.scatter(patterns[:, 0][Y==1], patterns[:, 1][Y==1], marker='o', c='g')
+    plt.scatter(patterns[:, 0][Y==0], patterns[:, 1][Y==0], marker='^', c='b')
+
+    # Plot false predictions
+    plt.scatter(patterns[:, 0][Y==3], patterns[:, 1][Y==3], marker = 'o', c='g')   
+    plt.scatter(patterns[:, 0][Y==2], patterns[:, 1][Y==2], marker = '^', c='b')
+    
+    plt.xlabel('x1')
+    plt.ylabel('x2')
+
+    plt.draw()

@@ -1,0 +1,9 @@
+To do:
+1. Make random_hyperparameter_search.py, which turns the random_search into a functional form
+2. Re-create optimise_patterns.py, with fixed dropout and random patterns (build for cores running on same random-seed, but varying data/ann-seed)
+3. Add warning in analysis, that all the results.txt have the same number of data
+3. Also try a LINEAR selection!!! (non-log distribution and plot)
+4. c:\Users\joebi\Education\Bachelor Project\Bachelor-Project-ANN\synthetic_data_generation.py:207: RuntimeWarning: invalid value encountered in subtract
+  x_val = (x_val - mean_trn) / std_trn
+5. Print warning if there is a point that is outside of the clim range
+6. Change data-set naming in analysis, so that it reads the data-set from the file!

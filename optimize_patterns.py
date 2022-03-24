@@ -1,4 +1,4 @@
-import ANN_w_dropout as ann
+import ANN as ann
 import numpy as np
 import activation_functions as act
 import synthetic_data_generation as sdg

@@ -208,7 +208,7 @@ def standardise(x_trn, x_val=None):
     return x_trn, x_val
 
 
-def generate_datasets(preset_name, presets_file='data_presets.txt', extra = 0,
+def generate_datasets(preset_name, presets_file='data_presets.txt', override_patterns = None,
                       val_mul = 1, try_plot = False,
                       rng=np.random.default_rng()):
     """
@@ -250,16 +250,20 @@ def generate_datasets(preset_name, presets_file='data_presets.txt', extra = 0,
             each target is an integer 0 or 1. For multi-class classification,
             the target uses one-hot encoding.
     """
-    #Load the chosen_preset from the presets_file presets from file
+    # Load the chosen_preset from the presets_file presets from file
     presets = load_presets(presets_file)
     chosen_preset = presets[preset_name]
 
+    # Override the number of patterns (the default before val_mul is applied), if desired
+    if not isinstance(override_patterns, type(None)):
+        if isinstance(override_patterns, int):
+            for i in range(0, len(chosen_preset[1])):
+                chosen_preset[1][i] = override_patterns
+        else:
+            chosen_preset[1] = override_patterns
+
     # Synthesise validation data
     x_val, d_val, ids_to_targets = generate_class_data(*chosen_preset, val_mul, rng = rng)
-    
-    #Add any extra patterns to each distribution in the training data
-    if extra:
-        chosen_preset[1] += extra
     
     # Synthesise training data
     x_trn, d_trn, __ = generate_class_data(*chosen_preset, rng = rng)
