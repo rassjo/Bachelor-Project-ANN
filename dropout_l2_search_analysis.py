@@ -5,12 +5,16 @@ import txt_utils as tu
 import os
 
 # Define path to results.txt
-static_hps_id = '28fc8765a3fe'
+#static_hps_id = '28fc8765a3fe'
 #static_hps_id = '1c177ad6b4cf'
+#static_hps_id = '307e019e7eaa'
+static_hps_id = '2773511d2ff9'
 
 # Define the data_set
-data_set = '10d_engulfed'
+#data_set = '10d_engulfed'
 #data_set = '10d_intercept' # Change this, so that it reads the data-set from the file!
+#data_set = '2d_engulfed'
+data_set = '6d_engulfed'
 
 results_dir = 'dropout_l2_random_search_results'
 id_dir = f'id-{static_hps_id}'
@@ -81,7 +85,8 @@ def plot_stuff(vals, save_as, colour_bar_label, colour_map, clim_range):
 # Create loss plot
 save_as = f'analysis_loss_id-{static_hps_id}.{img_type}'
 colour_map = 'gist_rainbow'
-clim_range = [0.25, 0.8] #None
+clim_range = [0.25, 0.8] 
+#clim_range = None
 plot_stuff(losses, save_as, 'Validation loss', colour_map, clim_range)
 
 # Create accuracies plot
@@ -89,6 +94,7 @@ save_as = f'analysis_accuracies_id-{static_hps_id}.{img_type}'
 accuracies = np.dot(accuracies, 100) # Turn into percentage
 colour_map = 'gist_rainbow_r'#'rainbow'#'jet'
 clim_range = [40, 100]
+#clim_range = None
 plot_stuff(accuracies, save_as, 'Validation accuracy / %', colour_map, clim_range)
 
 plt.show()
