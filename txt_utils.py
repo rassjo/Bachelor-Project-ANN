@@ -9,6 +9,16 @@ def create_local_dir(new_local_dir):
     if not os.path.exists(dir):
         os.mkdir(dir)
 
+def unload_static_hyperparameters(txt_name):
+    static_hyperparameters = {}
+    with open(txt_name, 'r') as data:
+        for line in data:
+            if line[0] != '?':
+                continue      
+
+            static_hyperparameters = ast.literal_eval(line[2:-1])
+        return static_hyperparameters
+
 def unload_results(txt_name):
     with open(txt_name, 'r') as data:
         hyperparameters_to_stats = {}
@@ -17,13 +27,13 @@ def unload_results(txt_name):
                 continue
             values = line.split(';')
 
-            dropout = float(values[0][2:-1])
-            l2 = float(values[1][1:-1])
+            x = float(values[0][2:-1])
+            y = float(values[1][1:-1])
             loss = float(values[2][1:-1])
             confusion_matrix = np.array(ast.literal_eval(values[3][1:-1]))
 
-            hyperparameters_to_stats[(dropout, l2)] = {'loss': loss, 'cm': confusion_matrix}
-
+            hyperparameters_to_stats[(x, y)] = {'loss': loss, 'cm': confusion_matrix}
+            
         return hyperparameters_to_stats
 
 def write_hyperparameters(name, meta_data, column_labels):

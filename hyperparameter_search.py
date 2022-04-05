@@ -105,7 +105,8 @@ def dual_hyperparameter_search(static_hps, variable_hps, data_seed = -1, ann_see
     # Create text file
     txt_name = f'{results_dir}/{id_dir}/{seed_dir}/results.txt'
     meta_data = [f'ID: {static_hps_id}', 
-                f'Static hyperparameters: {static_hps}',
+                f'Static hyperparameters: ',
+                f'? {static_hps}',
                 f'Data seed: {data_seed:02d}',
                 f'ANN seed: {ann_seed:02d}',
                 f'Search seed: {search_seed:02d}'] 
@@ -148,8 +149,8 @@ def dual_hyperparameter_search(static_hps, variable_hps, data_seed = -1, ann_see
     predicted_incomplete = []
     for hp in variable_hps:
         if not hp.is_random_dist:
-            remainder = max_iterations % hp.num_parts # Get the remainder (how many over max_iterations)
-            incomplete_iterations = hp.num_parts - remainder # How many under max_iterations
+            remainder = max_iterations % (hp.num_parts) # Get the remainder (how many over max_iterations)
+            incomplete_iterations = remainder # How many under max_iterations # Not sure that this is working...
             if (incomplete_iterations != 0):
                 predicted_incomplete.append(incomplete_iterations)
     if predicted_incomplete == []:
@@ -232,7 +233,10 @@ def dual_hyperparameter_search(static_hps, variable_hps, data_seed = -1, ann_see
             plt.savefig(f'{results_dir}/{id_dir}/{seed_dir}/error-over-epochs_{plot_id}.{img_type}') 
 
             # Plot and save the decision boundary
-            cs.decision_boundary(val_patterns, val_targets, ann_model)
+            if input_dim == 2:
+                cs.decision_boundary(val_patterns, val_targets, ann_model)
+            elif input_dim == 1:
+                cs.decision_boundary_1d(val_patterns, val_targets, ann_model)
             plt.savefig(f'{results_dir}/{id_dir}/{seed_dir}/validation-decision-boundary_{plot_id}.{img_type}')
 
         # Increment counter

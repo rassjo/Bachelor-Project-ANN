@@ -289,7 +289,7 @@ class Layer_Dense:
     # Initialize the dense layer with inputs random weights & biases and
     # the right activation function, and a 
     def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 1, rng = np.random.default_rng()):
-        self.weights = rng.standard_normal(size = (nodes, dim))
+        self.weights = rng.normal(0, 1/np.sqrt(dim), size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
         self.w_size = self.weights.shape
         self.b_size = self.biases.shape

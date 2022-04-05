@@ -276,7 +276,7 @@ def generate_datasets(preset_name, presets_file='data_presets.txt', override_pat
     # Plot data
     if try_plot:
         num_dims = len(x_trn[0])
-        if num_dims <= 2:
+        if num_dims == 2:
             plot_data(x_trn, d_trn, 'training', targets_to_ids)
             plot_data(x_val, d_val, 'validation', targets_to_ids)
 
@@ -367,8 +367,8 @@ def plot_data(x, d, data_name='generic', targets_to_ids=None):
     ax.legend()
 
     # Uncomment for origin lines
-    ax.axhline(0, color='gray', linewidth=0.5)
-    ax.axvline(0, color='gray', linewidth=0.5)
+    #ax.axhline(0, color='gray', linewidth=0.5)
+    #ax.axvline(0, color='gray', linewidth=0.5)
 
     # Uncomment for grid lines
     """

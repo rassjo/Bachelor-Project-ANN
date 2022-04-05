@@ -25,6 +25,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import ANN as ann
+from matplotlib import colors
 
 def get_fundamental_class_metrics(confusion_matrix, class_num):
     """
@@ -515,22 +516,56 @@ def stats(outputs, targets, data_name='<data_name placeholder>',
     
     return statistics
 
-def decision_boundary(patterns, targets, model, precision = 0.025):
+def decision_boundary_1d(patterns, targets, model, precision = 0.025):
     """
     For binary classification problems only.
     Precision is the grid step-size from which the decision boundary is created.
     """
+
     input_dim = len(patterns[0])
-    if (input_dim != 2): # Only plot if it is a 2-dimensional problem
+    if (input_dim != 1): # Only plot if it is a 1-dimensional problem
         return None
 
-    x_min, x_max = patterns[:, 0].min() - .5, patterns[:, 0].max() + .5
-    y_min, y_max = patterns[:, 1].min() - .5, patterns[:, 1].max() + .5
+    x_min, x_max = patterns[:, 0].min() - .25, patterns[:, 0].max() + .25
+    #y_min, y_max = patterns[:, 1].min() - .5, patterns[:, 1].max() + .5
 
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, precision), np.arange(y_min, y_max, precision))
-    Z = model.feed_all_patterns(np.c_[xx.ravel(), yy.ravel()])
+    #x_min, x_max = -3.7, 2.1
+    y_min, y_max = -0.6, 0.9
 
-    Z = Z.reshape(xx.shape)
+    #xx, yy = np.meshgrid(np.arange(x_min, x_max, precision), np.arange(y_min, y_max, precision)) #x_max*1.1
+    #Z = model.feed_all_patterns(np.c_[xx.ravel(), yy.ravel()])
+    xx = [[x_min]]
+    x = x_min
+    while x < x_max:
+        x += precision
+        xx.append([x])
+
+    xx_plain = [x_min]
+    x = x_min
+    while x < x_max:
+        x += precision
+        xx_plain.append(x)
+
+    yy = [y_min]
+    y = y_min
+    while y < y_max:
+        y += precision
+        yy.append(y)
+
+    xx = np.array(xx)
+    yy = np.array(yy)
+
+    #print(xx)
+
+    Z = model.feed_all_patterns(xx)
+
+    print(Z)
+
+    Z_new = []
+    for i in range(0, len(yy)):
+        Z_new.append(Z)
+
+    Z_new = np.array(Z_new)
     
     Z[Z>.5] = 1
     Z[Z<= .5] = 0
@@ -546,21 +581,135 @@ def decision_boundary(patterns, targets, model, precision = 0.025):
     plt.figure()
 
     # Create countor line
-    colour_map = 'brg' #plt.cm.PRGn
-    plt.contourf(xx, yy, Z, cmap=colour_map, alpha = .25) # Region-coloured background
+    # make a color map of fixed colors
+    cmap = colors.ListedColormap(['blue', 'red'])
+    bounds=[0, 0.5, 1]
+    norm = colors.BoundaryNorm(bounds, cmap.N)
+
+    #colour_map = 'bwr' #'brg'
+    plt.contourf(xx_plain, yy, Z_new, cmap=cmap, norm=norm, alpha = 0.33) # Region-coloured background
     #plt.contour(xx, yy, Z, cmap=plt.cm.Paired) # Transparent background
     
     # Markers: Circles 'o', squares 's', triangles '^'
 
-    # Plot correct predictions
-    plt.scatter(patterns[:, 0][Y==1], patterns[:, 1][Y==1], marker='o', c='g')
-    plt.scatter(patterns[:, 0][Y==0], patterns[:, 1][Y==0], marker='^', c='b')
-
-    # Plot false predictions
-    plt.scatter(patterns[:, 0][Y==3], patterns[:, 1][Y==3], marker = 'o', c='g')   
-    plt.scatter(patterns[:, 0][Y==2], patterns[:, 1][Y==2], marker = '^', c='b')
+    colour_1 = (1,0,0,1)
+    colour_1_error = (1,0,0,1)
+    colour_2 = (0,0,1,1)
+    colour_2_error = (0,0,1,1)
     
-    plt.xlabel('x1')
-    plt.ylabel('x2')
+    patterns = list(patterns)
+    for i in range(0, len(patterns)):
+        patterns[i] = list(patterns[i])
+        patterns[i].append(0)
+        patterns[i] = np.array(patterns[i])
+    patterns = np.array(patterns)
+
+    zeros_0 = []
+    for i in range(0, len(patterns[:, 0][Y==0])):
+        zeros_0.append(0)
+    zeros_1 = []
+    for i in range(0, len(patterns[:, 0][Y==1])):
+        zeros_1.append(0)
+    zeros_2 = []
+    for i in range(0, len(patterns[:, 0][Y==2])):
+        zeros_2.append(0)
+    zeros_3 = []
+    for i in range(0, len(patterns[:, 0][Y==3])):
+        zeros_3.append(0)
+
+    #ys = np.zeros(patterns[:, 0][Y==1])
+
+    # Plot class A
+    plt.scatter(patterns[:, 0][Y==0], zeros_0, marker='o', color=colour_2, edgecolors='none', label='Class A')
+    plt.scatter(patterns[:, 0][Y==2], zeros_2, marker = 'o', color=colour_2_error, edgecolors='none')
+
+    # Plot class B
+    plt.scatter(patterns[:, 0][Y==1], zeros_1, marker='^', color=colour_1, edgecolors='none', label='Class B')
+    plt.scatter(patterns[:, 0][Y==3], zeros_3, marker = '^', color=colour_1_error, edgecolors='none') 
+    
+    plt.xlabel('Input $x$')
+    #plt.ylabel('Input $y$')
+
+    # Make x and y axis scale equally
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+
+    plt.yticks([])
+                                                   
+    plt.legend()
+
+    plt.draw()
+
+
+def decision_boundary(patterns, targets, model, precision = 0.025):
+    """
+    For binary classification problems only.
+    Precision is the grid step-size from which the decision boundary is created.
+    """
+    input_dim = len(patterns[0])
+    if (input_dim != 2): # Only plot if it is a 2-dimensional problem
+        return None
+
+    x_min, x_max = patterns[:, 0].min() - .25, patterns[:, 0].max() + .25
+    y_min, y_max = patterns[:, 1].min() - .25, patterns[:, 1].max() + .25
+
+    #x_min, x_max = -3.7, 2.1
+    #y_min, y_max = -5, 5
+
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, precision), np.arange(y_min, y_max, precision)) #x_max*1.1
+    Z = model.feed_all_patterns(np.c_[xx.ravel(), yy.ravel()])
+
+    Z = Z.reshape(xx.shape)
+    
+    print(Z)
+
+    Z[Z>.5] = 1
+    Z[Z<= .5] = 0
+
+    Y_pr = model.feed_all_patterns(patterns).reshape(targets.shape)
+  
+    Y = np.copy(targets)
+    Y_pr[Y_pr>.5] = 1
+    Y_pr[Y_pr<= .5] = 0
+    Y[(Y!=Y_pr) & (Y==0)] = 2
+    Y[(Y!=Y_pr) & (Y==1)] = 3
+    
+    plt.figure()
+
+    # Create countor line
+    # make a color map of fixed colors
+    cmap = colors.ListedColormap(['blue', 'red'])
+    bounds=[0, 0.5, 1]
+    norm = colors.BoundaryNorm(bounds, cmap.N)
+
+    #colour_map = 'bwr' #'brg'
+    plt.contourf(xx, yy, Z, cmap=cmap, norm=norm, alpha = 0.33) # Region-coloured background
+    #plt.contour(xx, yy, Z, cmap=plt.cm.Paired) # Transparent background
+    
+    # Markers: Circles 'o', squares 's', triangles '^'
+
+    colour_1 = (1,0,0,1)
+    colour_1_error = (1,0,0,1)
+    colour_2 = (0,0,1,1)
+    colour_2_error = (0,0,1,1)
+    
+    # Plot class A
+    plt.scatter(patterns[:, 0][Y==0], patterns[:, 1][Y==0], marker='o', color=colour_2, edgecolors='none', label='Class A')
+    plt.scatter(patterns[:, 0][Y==2], patterns[:, 1][Y==2], marker = 'o', color=colour_2_error, edgecolors='none')
+
+    # Plot class B
+    plt.scatter(patterns[:, 0][Y==1], patterns[:, 1][Y==1], marker='^', color=colour_1, edgecolors='none', label='Class B')
+    plt.scatter(patterns[:, 0][Y==3], patterns[:, 1][Y==3], marker = '^', color=colour_1_error, edgecolors='none')  
+    
+    plt.xlabel('Input $x$')
+    plt.ylabel('Input $y$')
+
+    # Make x and y axis scale equally
+    #plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+                                                   
+    plt.legend()
 
     plt.draw()

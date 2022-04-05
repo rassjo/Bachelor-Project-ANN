@@ -7,7 +7,7 @@ static_hps = {'lrn_rate': 0.1,
       'val_mul': 4,
       'hidden': 15,
       'dropout': 1.0,
-      'dataset': '2d_engulfed'}
+      'dataset': '10d_intercept'}
 variable_hps = [hs.variable_hp('patterns', [10, 100], is_log_dist=True, is_rev_open=False, make_int=True),
       hs.variable_hp('l2', [1e-6, 1], is_log_dist=True, is_rev_open=False)]
 

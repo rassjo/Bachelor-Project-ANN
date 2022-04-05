@@ -1,6 +1,12 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 
+# Input whether or not the plot should be linear or log10.
+plot_scale = None
+while not (plot_scale == "linear" or plot_scale == "log10"):
+    plot_scale = input("Do you want the plot to be 'linear' or 'log10'? ")
+log_plot = plot_scale == "log10"
+
 def SEMcalc(x):
     #Note: x should be an array of the best lambdas for one set of hyperparameters
     N = len(x)
@@ -9,7 +15,7 @@ def SEMcalc(x):
     
     #Calculate sample variance
     samvar2=1/(N-1)*sum((x-mean)**2)
-    print(samvar2)
+    #print(samvar2)
     #calculate the standard error of the mean (SEM)
     SEM=np.sqrt(samvar2/N)
     
@@ -20,8 +26,10 @@ def meancalc(x):
 
 all_lambda = {}
 
-identifier = '8d01fe5a229'
-seeds = [2,3,4]
+identifier = '215b9a39a923'
+seeds = [5,6,7,8,9,10,
+        12,13,14,15,16,17,18,19,20,21,22,23,24,25,
+        100]
 
 for seed in seeds:
     with open(f'patterns_lambda_{identifier}_{seed}.txt', 'r') as data:
@@ -41,13 +49,41 @@ x_axis = list(all_lambda.keys())
 y_axis = [meancalc(np.array(all_lambda[point])) for point in x_axis]
 error_bars = [SEMcalc(np.array(all_lambda[point])) for point in x_axis]
 
+# Plot everything
 plt.figure()
-plt.errorbar(x_axis, y_axis, yerr=error_bars, fmt = 'o', color='r', ecolor='b', capsize=5, label='best lambdas vs # patterns')
-plt.xlabel('# patterns')
-plt.ylabel('best lambdas')
-plt.title('best lambdas vs # patterns')
+
+if (log_plot):
+    # Make data logarithmic
+    x_axis = np.log10(x_axis)
+    y_axis = np.log10(y_axis)
+    # Create linear regression
+    coef = np.polyfit(x_axis, y_axis, 1) # Create a least squares polynomial fit from the log-axes.
+    linear_regression = np.poly1d(coef) # Make linear_regressoin a function which takes in x (log) and returns an estimate for y (log)
+    # Plot linear regression, and print the gradient and y-intercept.
+    plt.plot(x_axis, linear_regression(x_axis), '--k', label="Linear Regression (Least Squares)")
+    print("gradient = " + str(linear_regression.coefficients[0]))
+    print("$y$-intercept = " + str(linear_regression.coefficients[1]))
+
+plt.errorbar(x_axis, y_axis, yerr=error_bars, fmt='o', color='r', ecolor='r', capsize=5, label='best lambdas vs # patterns')
+plt.xlabel(plot_scale + ' # patterns')
+plt.ylabel(plot_scale + ' best lambdas')
+plt.title('best lambdas vs # patterns ')
 plt.legend()
 plt.savefig('patterns_lambda_plot.png')
 plt.show()
 plt.clf()
-    
+
+""" 
+# An attempt to do fancy custom limits, so that the start and end of the linear regression is not seen.
+# However, having trouble getting it look quite right without putting in more effort,
+# as it is not taking into account the error bars when determining the top (and bottom).
+left = min(x_axis)
+right = max(x_axis)
+delta_x = right - left
+bottom = min(y_axis)
+top = max(y_axis)
+delta_y = top-bottom
+print(delta_y)
+plt.xlim(left - delta_x*0.15, right + delta_x*0.15)
+plt.ylim(bottom - delta_y*0.15, top + delta_y*0.15)
+"""
