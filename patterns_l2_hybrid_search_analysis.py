@@ -22,7 +22,8 @@ def meancalc(x):
     return sum(x)/len(x)
 
 # Define path to results.txt
-static_hps_ids = ['3913a54a8e78']
+#static_hps_ids = ['3913a54a8e78']
+static_hps_ids = ['23d311a46ef0', '30b81790d64', '1904f9057076']
 
 results_dir = 'patterns_l2_hybrid_search_results'
 results_name = 'results.txt'
@@ -35,14 +36,14 @@ for static_hps_id in static_hps_ids:
     id_dirs.append(f'id-{static_hps_id}')
     rootdirs.append(os.path.join(cwd, results_dir, id_dirs[-1]))
 
-hyperparameters_to_stats = {}
+#hyperparameters_to_stats = {}
+var3_to_var1_to_list_of_opt_var2 = {}
 
-temp_list_optimal_l2_loss = []
-temp_list_optimal_l2 = []
-patterns_to_optimal_l2 = {}
-patterns_to_optimal_l2_loss = {}
-
-dropout_to_patterns_to_optimal_l2 = {}
+# For each file:
+# 1. Get var3 value
+# 2. For each var1:
+#    --> Get optimal var2 value by minimising loss
+# 3. Update a dictionary of var3_to_var1_to_list_of_opt_var2
 
 # Walk through the directories and subdirectories of rootdir to find the results.txt files
 for rootdir in rootdirs:
@@ -53,99 +54,74 @@ for rootdir in rootdirs:
                 txt_name = os.path.join(subdir, file)
                 
                 # Collect the unique data points in the file
-                hyperparameters_to_stats.update(tu.unload_results(txt_name))
+                #hyperparameters_to_stats = {}
+                #hyperparameters_to_stats.update(tu.unload_results(txt_name))
+                hyperparameters_to_stats = tu.unload_results(txt_name)
 
                 # Collect the static hyperparameters
                 static_hyperparameters = tu.unload_static_hyperparameters(txt_name)
-                dropout = static_hyperparameters['dropout']
+                var3 = static_hyperparameters['dropout']
                 data_set = static_hyperparameters['dataset']
 
-                patterns_to_l2 = {}
-                temp_list = []
                 # Seperate the data by unique patterns
-                for key in tu.unload_results(txt_name):
-                    stats = tu.unload_results(txt_name)[key]
-                    try:   
-                        temp_list = patterns_to_l2[key[0]]
-                    except:
-                        temp_list = []
-                    temp_list.append({'l2':key[1], 'loss':stats['loss']})
-                    patterns_to_l2[int(key[0])] = temp_list
+                var1_to_opt = {}
+                for key in hyperparameters_to_stats:
+                    stats = hyperparameters_to_stats[key]
+                    loss = stats['loss']
+                    var1 = key[0]
+                    var2 = key[1]
 
-                unique_patterns = []
-                optimal_l2s = []
-                minimum_losses = []
-                # Get the minimum loss for each unique patterns
-                for key in patterns_to_l2:
-                    optimal_l2 = np.inf
-                    minimum_loss = np.inf
-                    for i in range(0, len(patterns_to_l2[key])):
-                        l2 = patterns_to_l2[key][i]['l2']
-                        loss = patterns_to_l2[key][i]['loss']
-                        if loss < minimum_loss:
-                            optimal_l2 = l2
-                            minimum_loss = loss
+                    if isinstance(var1_to_opt.get(var1, None), type(None)):
+                        var1_to_opt[var1] = {}
 
-                    unique_patterns.append(key)
-                    optimal_l2s.append(optimal_l2)
-                    minimum_losses.append(minimum_loss)
+                    opt = var1_to_opt[var1]
+                    min_loss = opt.get('loss', None)
+                    if min_loss == None:
+                        min_loss = np.inf
+
+                    if loss < min_loss:
+                        # Update the optimal var2 and minimum loss
+                        var1_to_opt[var1]['var2'] = var2
+                        var1_to_opt[var1]['loss'] = loss
                 
-                for i in range(0, len(unique_patterns)):
-                    try:
-                        temp_list_optimal_l2_loss = patterns_to_optimal_l2_loss[unique_patterns[i]]
-                        temp_list_optimal_l2 = patterns_to_optimal_l2[unique_patterns[i]]
-                    except:
-                        temp_list_optimal_l2_loss = []
-                        temp_list_optimal_l2 = []
-                    temp_list_optimal_l2_loss.append({'l2':optimal_l2s[i], 'loss':minimum_losses[i]})
-                    temp_list_optimal_l2.append(optimal_l2s[i])
-                    patterns_to_optimal_l2_loss[unique_patterns[i]] = temp_list_optimal_l2_loss
-                    patterns_to_optimal_l2[unique_patterns[i]] = temp_list_optimal_l2
+                if isinstance(var3_to_var1_to_list_of_opt_var2.get(var3, None), type(None)):
+                    var3_to_var1_to_list_of_opt_var2[var3] = {}
 
-                dropout_to_patterns_to_optimal_l2[dropout] = patterns_to_optimal_l2
+                for key in var1_to_opt:
+                    var1 = key
+                    opt = var1_to_opt[var1]
+                    opt_var2 = opt['var2']
 
-# Seperate the dropouts, l2s and losses to check which l2 values were tested
-patterns = []
-l2s = []
-losses = []
-accuracies = []
-for key in hyperparameters_to_stats:
-    patterns.append(key[0])
-    l2s.append(key[1])
-    stats = hyperparameters_to_stats[key]
-    losses.append(stats['loss'])
-    # Determine accuracy from the confusion matrix
-    val_stats = cs.calculate_stats(stats['cm']) # Calculate statistics from the confusion matrix
-    fin_val_acc = val_stats[0]['advanced']['acc'] # Get validation accuracy
-    accuracies.append(fin_val_acc)
+                    if isinstance(var3_to_var1_to_list_of_opt_var2[var3].get(var1, None), type(None)):
+                        var3_to_var1_to_list_of_opt_var2[var3][var1] = []
 
-# Fixed plotting stuff
-xs_2 = patterns
-ys_2 = l2s
+                    list_of_opt_var2 = var3_to_var1_to_list_of_opt_var2[var3][var1]
+                    list_of_opt_var2.append(opt_var2)
 
-xs = unique_patterns
+                var3_to_var1_to_list_of_opt_var2[var3][var1] = list_of_opt_var2
+                
+var3_to_plot = {}
+for key in var3_to_var1_to_list_of_opt_var2:
+    var3 = key
+    var1_to_list_of_opt_var2 = var3_to_var1_to_list_of_opt_var2[var3]
 
-dropouts = []
-patterns_to_optimal_l2s = []
+    xs = []
+    ys = []
+    es = []
+    for key in var1_to_list_of_opt_var2:
+        var1 = key
+        list_of_opt_var2 = var1_to_list_of_opt_var2[var1]
 
-dropout_to_ys = {}
-dropout_to_errorbars = {}
+        xs.append(var1)
+        ys.append(meancalc(np.array(list_of_opt_var2)))
+        es.append(SEMcalc(np.array(list_of_opt_var2)))
 
-for key in dropout_to_patterns_to_optimal_l2:
-    dropouts.append(key)
-
-    patterns_to_optimal_l2 = dropout_to_patterns_to_optimal_l2[key]
-
-    ys = [meancalc(np.array(patterns_to_optimal_l2[point])) for point in xs]
-    error_bars = [SEMcalc(np.array(patterns_to_optimal_l2[point])) for point in xs]
-
-    dropout_to_ys[key] = ys
-    dropout_to_errorbars[key] = error_bars
+    var3_to_plot[var3] = {'xs': xs, 'ys': ys, 'es': es}
 
 marker = 'x'
-title = f'Random hyperparameter search of L2 and dropout\n({data_set})'
+title = f'Random hyperparameter search of L2 and dropout'
 x_label = 'Patterns'
-y_label = 'L2 strength'
+y_label = 'Optimal L2 strength'
 is_log_plot = True
 img_type = 'pdf' # Change to .pdf if generating images for thesis
 
@@ -155,22 +131,50 @@ def plot_stuff(save_as):
 
     ax.set_title(title)
 
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    #ax.set_xlabel(f'log$_{{{10}}}$({x_label})')
+    #ax.set_ylabel(f'log$_{{{10}}}$({y_label})')
+
+    #im = ax.scatter(xs, ys, marker=marker)#, c=minimum_losses)
+    #im = ax.scatter(xs_2, ys_2, marker=marker, alpha=1/3, label='points tried')#, c=losses)
+    var3s = np.array(list(var3_to_plot.keys()))
+    var3s[::-1].sort() # Sort var3s into descending orders
+    for var3 in var3s:
+        plot = var3_to_plot[var3]
+        xs = plot['xs']
+        ys = plot['ys']
+        es = plot['es']
+
+        #invis_col = (0,0,0,0)
+        #sc = ax.scatter(xs, ys, marker = 'o', label=f'dropout = {key}')
+        #col = sc.get_facecolors()[0].tolist()
+        #ax.errorbar(xs, ys, yerr=es, fmt = 'o', color=invis_col, ecolor=col, capsize=4, label=f'with error bars')
+
+        eb = ax.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=4, label=f'dropout = {var3}')
+        #connector, caplines, (vertical_lines,) = container.errorbar.lines
+        #col = connector.get_color()
+        col = eb[0].get_color()
+
+        # Make data logarithmic
+        xs_log = np.log10(xs)
+        ys_log = np.log10(ys)
+
+        m, c = np.polyfit(xs_log, ys_log, 1)
+        f = lambda x : 10**(m*np.log10(x) + c)
+        print('dropout', var3)
+        print('m', m)
+        print('c', c)
+
+        fit = f(np.array(xs))
+        plt.plot(xs, fit, '--', c = col, alpha = 0.5)
+
+
     ax.set_xscale('log')
     ax.set_yscale('log')
 
-    ax.set_xlabel(f'log$_{{{10}}}$({x_label})')
-    ax.set_ylabel(f'log$_{{{10}}}$({y_label})')
-
-    #im = ax.scatter(xs, ys, marker=marker)#, c=minimum_losses)
-    im = ax.scatter(xs_2, ys_2, marker=marker, alpha=1/3)#, c=losses)
-    for key in dropout_to_ys:
-        transparent_colour = (1,1,1,0)
-        sc = ax.scatter(xs, dropout_to_ys[key], marker = 'o', label=f'dropout = {key}')
-        col = sc.get_facecolors()[0].tolist()
-        ax.errorbar(xs, dropout_to_ys[key], yerr=dropout_to_errorbars[key], fmt = 'o', color=transparent_colour, ecolor=col, capsize=4, label=f'with error bars')
-
-    ax.set_xlim(9, 1100)
-    ax.set_ylim(1e-6, 1)
+    ax.set_xlim(9, 110)
+    ax.set_ylim(1e-5, 1e-1)
 
     plt.legend(loc = 'upper right')
     plt.savefig(f'{results_dir}/{save_as}')
