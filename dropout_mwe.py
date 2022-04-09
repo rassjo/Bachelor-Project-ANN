@@ -9,25 +9,14 @@ import matplotlib.pyplot as plt
 
 # Use hyperparameters like these to check small scale step-by-step stuff
 hps = {'lrn_rate': 0.1,
-      'epochs': 2,
-      'val_mul': 2,
-      'hidden': 3,
-      'l2': 0.0,
-      'dataset': 'baby',
-      'dropout': 1.0}
-print_debugging_text = True
-
-"""
-# Use hyperparameters like these to check larger scale stuff
-hps = {'lrn_rate': 0.1,
       'epochs': 1000,
       'val_mul': 4,
       'hidden': 15,
       'l2': 0.0,
       'dataset': '10d_intercept',
-      'dropout': 0.8}#1.0
+      'dropout': 1.0,
+      'is_janky': True}
 print_debugging_text = False
-"""
 
 # Define data seed and ann seed
 data_seed = ann_seed = 1
@@ -53,7 +42,7 @@ input_dim = len(x_trn[0]) #Get the input dimension from the training data
 layer_defines = [[hps['hidden'], act.tanh, hps['l2'], hps['dropout']],
                 [1, act.sig, hps['l2'], hps['dropout']]] # dropout applies to the inputs
 print("\ninitialising model...") if not print_debugging_text else None
-ann_model = ann.Model(input_dim, layer_defines, ann_rng, is_debugging=print_debugging_text)
+ann_model = ann.Model(input_dim, layer_defines, ann_rng, is_debugging=print_debugging_text, is_janky=hps['is_janky'])
 print("finished intialising model!") if not print_debugging_text else None
 
 print("\ntraining...") if not print_debugging_text else None
