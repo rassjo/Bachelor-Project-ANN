@@ -1,5 +1,4 @@
-import ANN as ann
-import ANN_main as ann_main
+import ANN_main as ann
 import activation_functions as act
 import synthetic_data_generation as sdg
 import classification_statistics as cs
@@ -14,9 +13,7 @@ hps = {'lrn_rate': 0.1,
       'val_mul': 4,
       'hidden': 15,
       'l2': 0.0,
-      'dataset': '10d_intercept',
-      'dropout': 1.0,
-      'is_janky': False}
+      'dataset': '10d_intercept'}
 print_debugging_text = False
 
 # Define data seed and ann seed
@@ -39,20 +36,17 @@ x_val, d_val = val[0], val[1]
 input_dim = len(x_trn[0]) #Get the input dimension from the training data
 
 #Properties of all the layers
-# Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
+# Recipe for defining a layer: [number of nodes, activation function, L2]
 layer_defines = [[hps['hidden'], act.tanh, hps['l2']],
                 [1, act.sig, hps['l2']]]
+                
 print("\ninitialising model...") if not print_debugging_text else None
-ann_model = ann.Model(input_dim, layer_defines, ann_rng, is_debugging=print_debugging_text, is_janky=hps['is_janky'])
+ann_model = ann.Model(input_dim, layer_defines, ann_rng)
 print("finished intialising model!") if not print_debugging_text else None
 
 print("\ntraining...") if not print_debugging_text else None
-ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], should_save_intermediary_history=True)
+ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], history_plot=True)
 print("finished training!") if not print_debugging_text else None
-
-print("\nshowing history...")
-ann_model.show_history(hps['epochs'])
-print("finished showing history!")
 
 plt.show()
 

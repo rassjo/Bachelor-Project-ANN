@@ -17,7 +17,7 @@ class Model:
         #Make as many layers as we have defined properties for
         for layer_properties in layer_defines:
             #Create a dense layer
-            self.layers.append(Layer_Dense(columns,*layer_properties,
+            self.layers.append(Layer_Dense(columns, *layer_properties,
                                            rng = self.rng))
             #Then we want to know how many columns the weight matrix in the
             #next layer should have, by looking at how many rows (i.e. how the
