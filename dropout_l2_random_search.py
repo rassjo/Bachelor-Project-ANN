@@ -6,10 +6,10 @@ static_hps = {'lrn_rate': 0.1,
       'epochs': 1000,
       'val_mul': 4,
       'hidden': 15,
-      'patterns': None,
-      'dataset': '2d_intercept'}
-variable_hps = [hs.variable_hp('dropout', [1, 1], is_log_dist=False, is_rev_open=True),
-      hs.variable_hp('l2', [0, 0], is_log_dist=True, is_rev_open=False)]
+      'patterns': None, # This is for overriding the number of patterns, typically left as None for default.
+      'dataset': '10d_intercept'}
+variable_hps = [hs.variable_hp('dropout', [0, 1], is_log_dist=False, is_rev_open=True),
+      hs.variable_hp('l2', [1e-6, 1], is_log_dist=True, is_rev_open=False)]
 
 # Define data seed and ann seed
 temp_seed = 1
@@ -23,9 +23,9 @@ except:
 search_seed = temp_seed
 
 # Declare variables for the random search
-should_make_plots = True
+should_make_plots = False
 img_type = 'pdf' # Change to .pdf if generating images for thesis
-max_iterations = 1 # This is the of variations to search
+max_iterations = 128 # This is the max number of iterations to search before stopping
 
 # Perform dropout & l2 dual random search
 hs.dual_hyperparameter_search(static_hps, variable_hps, data_seed, ann_seed, search_seed, max_iterations, should_make_plots, img_type)

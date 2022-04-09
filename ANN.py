@@ -7,20 +7,16 @@ import matplotlib.pyplot as plt
 import sys
 import warnings
 
-
-debugging = False
 #Remember:
 #Weights on the same ROW act on the same node
 #Weights on the same COLUMN come from the same node
 
-# To do:
-# 1. prevent extra feed-forward, unless debugging
-
 class Model:
-    def __init__(self, input_dim, layer_defines, rng=np.random.default_rng()):
+    def __init__(self, input_dim, layer_defines, rng = np.random.default_rng(), is_debugging = False):
         self.layers = [] #This is where we'll put all the layers we make
         columns = input_dim #Number of columns to use for the first weight matrix
         self.rng = rng
+        self.is_debugging = is_debugging
         #Make as many layers as we have defined properties for
         for layer_properties in layer_defines:
             #Create a dense layer
@@ -32,26 +28,35 @@ class Model:
             columns = self.layers[-1].weights.shape[0]
 
     def feed_forward(self, X):
-        print("FEED FORWARD PATTERN:") if debugging else None
+        print("FEED FORWARD PATTERN:") if self.is_debugging else None
         for layer in self.layers:
-            print("     NEW LAYER:") if debugging else None
+            print("     NEW LAYER:") if self.is_debugging else None
             layer.input = X
             next_layer_input = layer.calc_output(X)
-            print("          dropout mask: " + str(layer.dropout_mask)) if debugging else None
-            print("          input w dropout: " + str(layer.get_input_w_dropout())) if debugging else None
-            print("          bias: " + str(layer.biases)) if debugging else None
-            print("          output: " + str(next_layer_input)) if debugging else None
+            print("          dropout mask: " + str(layer.dropout_mask)) if self.is_debugging else None
+            print("          input w dropout: " + str(layer.get_input_w_dropout())) if self.is_debugging else None
+            print("          bias: " + str(layer.biases)) if self.is_debugging else None
+            print("          output: " + str(next_layer_input)) if self.is_debugging else None
             X = next_layer_input
 
     def feed_all_patterns(self, patterns):
         outputs = []
         for pattern in patterns:
+            print("patterns:", patterns) if self.is_debugging else None
             self.feed_forward(pattern) #Update the network's output...
             outputs.append(float(self.layers[-1].output)) #...and save it
         return np.array(outputs)
 
+    def enable_all_dropout(self):
+        for layer in self.layers:
+            layer.enable_dropout()
+
+    def disable_all_dropout(self):
+        for layer in self.layers:
+            layer.disable_dropout()
+
     def backpropagate(self, y, d):
-        print("BACK PROPAGATE PATTERN:") if debugging else None
+        print("BACK PROPAGATE PATTERN:") if self.is_debugging else None
         num_layers = len(self.layers) #Count the layers
         self.layers.reverse() #Reverse the order of the layers so we can do BACKpropagating
         #Prepare a place to save all the updates
@@ -65,34 +70,31 @@ class Model:
         #NOTE: We might want to change this later on in case we want to
         #expand the scope of problems our network to solve, however, right
         #now we just need to be able to train it so I'll leave this for now.
-        deltas = loss(y,d)
+        deltas = loss(y, d)
         #Now we want to calculate the update for all weights, layer by layer
         for i in range(0, num_layers):
             layer = self.layers[i]
-            print("     NEW LAYER:") if debugging else None
+            print("     NEW LAYER:") if self.is_debugging else None
 
             #For the current layer we need to know the weights
             #Previous output refers to the layer that comes before in the
             #feed-forward step
             current = layer.weights
             prev_output = layer.get_input_w_dropout()
-            print("          dropout mask: " + str(layer.dropout_mask)) if debugging else None
-            print("          input w dropout: " + str(layer.get_input_w_dropout())) if debugging else None
-            print("          bias: " + str(layer.biases)) if debugging else None
+            print("          dropout mask: " + str(layer.dropout_mask)) if self.is_debugging else None
+            print("          input w dropout: " + str(layer.get_input_w_dropout())) if self.is_debugging else None
+            print("          bias: " + str(layer.biases)) if self.is_debugging else None
 
             #Make an update matrix for the current layer
-            #w_update = np.zeros(current.shape)
-            #b_update = np.zeros(current.shape[0])
             w_update = np.ma.zeros(current.shape)
             b_update = np.ma.zeros(current.shape[0])
 
             #Equation 2.11 in FYTN14 Lecture Notes
             for row in range(0,current.shape[0]):
-                #w_update[row] = deltas[row]*prev_output
                 w_update[row] = np.ma.dot(deltas[row], prev_output, strict=True)
                 b_update[row] = deltas[row]
-            print("          bias update: " + str(b_update)) if debugging else None
-            print("          weight update: " + str(w_update)) if debugging else None
+            print("          bias update: " + str(b_update)) if self.is_debugging else None
+            print("          weight update: " + str(w_update)) if self.is_debugging else None
 
             #Save the updates for the current layers
             all_w_updates.append(w_update) ; all_b_updates.append(b_update)
@@ -111,112 +113,172 @@ class Model:
         self.layers.reverse()
         return all_w_updates, all_b_updates
 
-    def update_weights(self,training,minibatchsize,lrn_rate):
-        #We want it in the reverse order because the all_updates we get from
-        #the backpropagation will be in the reverse order
-        self.weight_updates.reverse() ; self.bias_updates.reverse()
+    def update_weights(self, trn, minibatchsize, lrn_rate):
+        x_trn, d_trn = trn
 
         #Now go through each pattern in the mini-batch
-        for _pattern in range(0,minibatchsize):
-            #Find the network's output for the pattern
-            self.feed_forward(training[0][self.n])
-            #Adding updates for every pattern to the total weight updates
-            all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output,training[1][self.n])
+        for n in range(0, minibatchsize):
+            # Regenerate the dropout masks for each new pattern
+            for layer in self.layers:
+                layer.generate_dropout_mask(rng=self.rng)
 
+            # This loop is dedicated to determining how many times each weight is used (not dropped)
             for i in range(0, len(self.layers)):
-                #print("     NEW LAYER:")
+                layer = self.layers[i]
+
+                dropout_mask = layer.dropout_mask # The dropout mask which is applied to the inputs of the current layer
+                next_dropout_mask = None
+                if i != len(self.layers)-1:
+                    # If it is not the last layer
+                    next_dropout_mask = self.layers[i+1].dropout_mask[np.newaxis] # The dropout mask which is applied to the nodes of the current layer
+                else:
+                    # If it is the last layer
+                    next_dropout_mask = np.full(layer.b_size, False) # The final dropout mask should just be a false value for each node, which shares the same shape as the bias size
+
+                next_dropout_mask = next_dropout_mask
+
+                dropout_mask_weights = np.tile(dropout_mask, (layer.w_size[0], 1))
+                next_dropout_mask_weights = np.tile(next_dropout_mask.T, (1, layer.w_size[1]))
+
+                next_dropout_mask_biases = np.reshape(next_dropout_mask, layer.b_size)
+
+                num_weight_updates = np.zeros(layer.w_size, dtype=int)
+                num_bias_updates = np.zeros(layer.b_size, dtype=int)
+
+                # Combine the dropout with the next dropout mask for weights
+                for j in range(0, len(dropout_mask_weights)):
+                    for k in range(0, len(dropout_mask_weights[j])):
+                        if dropout_mask_weights[j, k] == False and next_dropout_mask_weights[j, k] == False:
+                            num_weight_updates[j, k] = 1
+
+                self.num_weight_updates[i] = np.add(self.num_weight_updates[i], num_weight_updates)
+
+                # Just use the next dropout mask for biases
+                for j in range(0, len(next_dropout_mask_biases)):
+                    for k in range(0, len(next_dropout_mask_biases[j])):
+                        if next_dropout_mask_biases[j, k] == False:
+                            num_bias_updates[j, k] = 1
+
+                self.num_bias_updates[i] = np.add(self.num_bias_updates[i], num_bias_updates)           
+
+            #Find the network's output for the pattern
+            self.feed_forward(x_trn[n])
+
+            #Adding updates for every pattern to the total weight updates
+            all_w_updates, all_b_updates = self.backpropagate(self.layers[-1].output, d_trn[n])
+
+            #We want it in the reverse order because the all_updates we get from
+            #the backpropagation will be in the reverse order
+            self.weight_updates.reverse() ; self.bias_updates.reverse()
+            for i in range(0, len(self.layers)):
                 self.weight_updates[i] += all_w_updates[i]
                 self.bias_updates[i] += all_b_updates[i]
-            self.trn_output[self.n] = self.layers[-1].output[0]
-            self.n += 1 #Increment the counter when we go to the next pattern
+            # Reverse back to normal order
+            self.weight_updates.reverse() ; self.bias_updates.reverse()
 
         #Now we have all of the weight updates for the current mini-batch!
 
-        #Reverse the layers because weight_updates is reversed
-        self.layers.reverse()
         #Actually update the weights
         for i in range(0, len(self.layers)):
           layer = self.layers[i] #Current layer
           #Update the weights with the result from backpropagation and
           #the derivative of the L2-term
-          print("OLD:") if debugging else None
-          print("weights: " + str(layer.weights)) if debugging else None
-          print("biases: " + str(layer.biases)) if debugging else None
-          layer.weights -= (lrn_rate*self.weight_updates[i]/minibatchsize + layer.l2_s*layer.weights)
-          layer.biases -= lrn_rate*self.bias_updates[i]/minibatchsize
-          print("NEW:") if debugging else None
-          print("weights: " + str(layer.weights)) if debugging else None
-          print("biases: " + str(layer.biases)) if debugging else None
-        self.layers.reverse() #Return to original order
+          print("NEW LAYER:") if self.is_debugging else None
+          print("     OLD:") if self.is_debugging else None
+          print("          weights: " + str(layer.weights)) if self.is_debugging else None
+          print("          biases: " + str(layer.biases)) if self.is_debugging else None
 
-    def show_history(self,epochs):
+          mean_weight_updates = np.divide(self.weight_updates[i], self.num_weight_updates[i], out=np.zeros_like(self.weight_updates[i]), where=self.num_weight_updates[i]!=0)
+          actual_mean_weight_updates = -(lrn_rate*mean_weight_updates + layer.l2_s*layer.weights)
+          layer.weights += actual_mean_weight_updates
+          mean_bias_updates = np.divide(self.bias_updates[i], self.num_bias_updates[i], out=np.zeros_like(self.bias_updates[i]), where=self.num_bias_updates[i]!=0)
+          actual_mean_bias_updates = -(lrn_rate*mean_bias_updates)
+          layer.biases += actual_mean_bias_updates
+
+          print("     UPDATE:") if self.is_debugging else None
+          print("          num weight updates:", self.num_weight_updates[i]) if self.is_debugging else None
+          print("          num bias updates:", self.num_bias_updates[i]) if self.is_debugging else None
+          print("          actual mean weight updates (reduced by learning rate and L2):", actual_mean_weight_updates) if self.is_debugging else None
+          print("          actual mean bias updates (reduced by learning rate and L2):", actual_mean_bias_updates) if self.is_debugging else None
+
+          print("     NEW:") if self.is_debugging else None
+          print("          weights: " + str(layer.weights)) if self.is_debugging else None
+          print("          biases: " + str(layer.biases)) if self.is_debugging else None
+
+    def show_history(self, epochs):
+        if epochs > len(self.history['trn']):
+            print("WARNING: Attempted to plot with more epochs than saved, check that you trained with 'should_save_intermediary_history = True'. Only use 'should_save_intermediary_history = False' when you want to be extra efficient!")
+            return None
+
         # Plot the error over all epochs
         plt.figure()
-        plt.plot(np.arange(0,epochs+1), self.history['trn'], 'orange', label='Training error')
-        plt.plot(np.arange(0,epochs+1), self.history['val'], 'blue', label='Validation error')
+        plt.plot(np.arange(0, epochs+1), self.history['trn'], 'orange', label='Training error')
+        plt.plot(np.arange(0, epochs+1), self.history['val'], 'blue', label='Validation error')
         plt.xlabel('Epochs')
         plt.ylabel('Error')
         plt.title('Error over epochs')
         plt.legend()
         plt.draw()
 
-    def train(self, training, validation, lrn_rate, epochs, minibatchsize=0,
-              save_val = False, history_plot = False):
-        N = len(training[0]) #number of patterns in training data
-        N_val = len(validation[0]) #number of patterns in validation data
+    def save_history(self, trn, val):
+        # Save the training and validation loss for the current epoch
+        x_trn, d_trn = trn
+        x_val, d_val = val
+
+        N = len(x_trn) #number of patterns in training data
+        N_val = len(x_val) #number of patterns in validation data
+
+        # Temporarily disable dropout (for loss stuff)
+        self.disable_all_dropout()  
+
+        print("\nTraining loss (dropout off)") if self.is_debugging else None
+        #Get the training loss
+        trn_outputs = self.feed_all_patterns(x_trn)
+        loss_array = ErrorV(np.array(trn_outputs), d_trn)
+        mean_loss = sum(loss_array)/N
+        self.history['trn'].append(mean_loss)
+
+        print("\nValidation loss (dropout off)") if self.is_debugging else None
+        #Get the validation loss
+        val_outputs = self.feed_all_patterns(x_val)
+        loss_array = ErrorV(np.array(val_outputs), d_val)
+        mean_loss = sum(loss_array)/N_val
+        self.history['val'].append(mean_loss)
+
+        # Re-enable dropout for learning
+        self.enable_all_dropout()
+
+    def train(self, trn, val, lrn_rate, epochs, minibatchsize=0,
+              should_save_intermediary_history=True):
+        x_trn, d_trn = trn
+        x_val, d_val = val
+
+        N = len(x_trn) #number of patterns in training data
+        N_val = len(x_val) #number of patterns in validation data
+
         #If minibatchsize is 0 (i.e. default), do regular gradient descent
         if minibatchsize == 0:
             minibatchsize = N
+
         fixed_minibatchsize = minibatchsize #Save the true mini-batch size somewhere
         #Check if the mini-batch size is larger than the total amount of training patterns
+
         if minibatchsize > N:
             raise Exception(f'Your mini-batch size is too large! With the current training data it cannot exceed {N}.')
 
         #Number of extra patterns to be added onto the final mini-batch
-        extra = N%fixed_minibatchsize
-        #If the loss over epochs is supposed to be displayed and the user
-        #forgot to also turn on saving validation loss after every epoch
-        if history_plot:
-            save_val = True
-            
+        extra = N % fixed_minibatchsize
+        
         self.history = {'trn':[],'val':[]} #This is where we will save the loss after each epoch
 
-        # Temporarily turn off dropout (for loss stuff)
-        for layer in self.layers:
-            layer.disable_dropout()
-            print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
-        
-        print("\nInitial training loss (dropout off)") if debugging else None
-        #Get the initial training loss
-        self.trn_output = self.feed_all_patterns(training[0])
-        loss_array=ErrorV(np.array(self.trn_output),training[1])
-        self.history['trn'].append(sum(loss_array)/N)
-
-        print("\nInitial validation loss (dropout off)") if debugging else None
-        #Get the initial validation loss
-        self.val_output = self.feed_all_patterns(validation[0])
-        loss_array=ErrorV(np.array(self.val_output),validation[1])
-        self.history['val'].append(sum(loss_array)/N_val)
-
-        # Temporarily enable dropout (for loss stuff)
-        for layer in self.layers:
-            layer.enable_dropout()
-            print("dropout_enabled: " + str(layer.dropout_enabled)) if debugging else None
+        self.save_history(trn, val) # Always save the initial history
 
         #This loop is for going through the desired amount of epochs
         for epoch_nr in range(0, epochs):
-            print(f"\nEpoch {epoch_nr + 1} (dropout on)") if debugging else None
-            # Refresh the dropout mask for each layer.
-            for layer in self.layers:
-                layer.enable_dropout()
-                layer.generate_dropout_mask(rng=self.rng)
+            print(f"\nEpoch {epoch_nr + 1} (dropout on)") if self.is_debugging else None
 
-            #This is where we save results after each training pattern
-            self.trn_output = np.ma.zeros(N)
-            self.n = 0 #This will keep track of which pattern we are at during the epoch
-            #These lines randomize the pattern order for each new epoch
-            p = np.random.permutation(len(training[0]))
-            training = [training[0][p], training[1][p]]
+            p = self.rng.permutation(len(x_trn))
+            training = [x_trn[p], d_trn[p]]
             #Restore the mini-batch size to the original value
             minibatchsize = fixed_minibatchsize
 
@@ -229,60 +291,19 @@ class Model:
                 self.weight_updates = [np.zeros(layer.w_size) for layer in self.layers]
                 #Where we store the total bias updates for the mini-batch
                 self.bias_updates = [np.zeros(layer.b_size) for layer in self.layers]
+                # Where we store the total number of updates for the mini-batch
+                self.num_weight_updates = [np.zeros(layer.w_size, dtype = int) for layer in self.layers]
+                self.num_bias_updates = [np.zeros(layer.b_size, dtype = int) for layer in self.layers]
+
                 #Now it's time to update the weights!
-                self.update_weights(training,minibatchsize,lrn_rate)
+                self.update_weights(training, minibatchsize, lrn_rate)
 
-            #We already added the loss for epoch 0 to the history, so only do
-            #this for epochs 1 and beyond. Values for trn_output are added
-            #in the update_weights() method to save calculation time
-            
-            if epoch_nr > 0:
-                # Temporarily turn off dropout (for loss stuff)
-                for layer in self.layers:
-                    layer.disable_dropout()
-                self.trn_output = self.feed_all_patterns(training[0]) # feed forward with dropout off
-                loss_array=ErrorV(self.trn_output,training[1])
-                # Turn back on dropout
-                for layer in self.layers:
-                    layer.enable_dropout()
-                #Calculate the average training loss of the epoch and save it
-                self.history['trn'].append(sum(loss_array)/len(loss_array))
-            #Get the validation loss for the epoch if that flag is on
-            #But always save the validation of the final epoch!
-            if save_val or epoch_nr == (epochs - 1):
-                # Temporarily turn off dropout (for loss stuff)
-                print("\nFinal validation loss (dropout off)") if debugging else None
-                for layer in self.layers:
-                    layer.disable_dropout()
-                self.val_output = self.feed_all_patterns(validation[0])
-                loss_array=ErrorV(np.array(self.val_output),validation[1])
-                # Turn back on dropout
-                for layer in self.layers:
-                    layer.enable_dropout()
-                #Calculate the average validaiton loss of the epoch and save it
-                self.history['val'].append(sum(loss_array)/len(loss_array))
+            if should_save_intermediary_history and epoch_nr != epochs-1:
+                self.save_history(trn, val)
 
-            #Now we start a new epoch!
+        print("\nFinal training loss (dropout off)") if self.is_debugging else None
 
-        print("\nFinal training loss (dropout off)") if debugging else None
-        #Calculate the error after the final weight update without updating
-        #the weights further to complete the history list
-        for layer in self.layers:
-            layer.disable_dropout()
-        self.trn_output = self.feed_all_patterns(training[0])
-        loss_array=ErrorV(np.array(self.trn_output),training[1])
-        for layer in self.layers:
-            layer.enable_dropout()
-        #Calculate the average training loss of the epoch and save it
-        self.history['trn'].append(sum(loss_array)/len(loss_array))
-
-        #Note that when we calculate the loss for the validation data we
-        #actually do it after the weights have been updated for the epoch!
-        #Therefore, we DON'T need an extra run through all patterns once
-        #we have gone through all epochs like we do for the training data!
-        
-        if history_plot:
-            self.show_history(epochs) #This will generate the "loss plot"
+        self.save_history(trn, val) # Always save the final history
 
 
 class Layer_Dense:
@@ -366,12 +387,12 @@ class Layer_Dense:
 def Error(y, d):
     #E = -(np.dot(d,np.log(y))+np.dot((1-d),np.log(1-y)))[0] save for later
     if d == 0:
-        return(-np.log(1-y))
+        return(-np.log(1 - y))
     elif d == 1:
         return(-np.log(y))
 
-def classification_loss(y,d):
-    return y-d
+def classification_loss(y, d):
+    return y - d
 
 ErrorV = np.vectorize(Error)
 

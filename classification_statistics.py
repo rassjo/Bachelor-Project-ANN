@@ -559,8 +559,6 @@ def decision_boundary_1d(patterns, targets, model, precision = 0.025):
 
     Z = model.feed_all_patterns(xx)
 
-    print(Z)
-
     Z_new = []
     for i in range(0, len(yy)):
         Z_new.append(Z)
@@ -661,8 +659,6 @@ def decision_boundary(patterns, targets, model, precision = 0.025):
     Z = model.feed_all_patterns(np.c_[xx.ravel(), yy.ravel()])
 
     Z = Z.reshape(xx.shape)
-    
-    print(Z)
 
     Z[Z>.5] = 1
     Z[Z<= .5] = 0

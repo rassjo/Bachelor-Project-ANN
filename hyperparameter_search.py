@@ -1,6 +1,3 @@
-from audioop import reverse
-from os import stat
-from unicodedata import name
 import ANN as ann
 import numpy as np
 import activation_functions as act
@@ -10,7 +7,6 @@ import classification_statistics as cs
 from id_generator import best_hash
 import txt_utils as tu
 import rng_utils as ru
-import sys
 
 class variable_hp:
     def __init__(self, name, range, is_random_dist = True, num_parts = None, is_log_dist = False, is_rev_open = False, make_int = False):
@@ -207,7 +203,10 @@ def dual_hyperparameter_search(static_hps, variable_hps, data_seed = -1, ann_see
         ann_model = ann.Model(input_dim, layer_defines, ann_rng)
 
         # Train the network
-        ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], 0, history_plot=should_make_plots)
+        ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], 0, should_save_intermediary_history=should_make_plots)
+
+        if should_make_plots:
+            ann_model.show_history(hps['epochs'])
 
         # Get final validation loss
         fin_val_loss = ann_model.history['val'][-1] 
@@ -235,9 +234,10 @@ def dual_hyperparameter_search(static_hps, variable_hps, data_seed = -1, ann_see
             # Plot and save the decision boundary
             if input_dim == 2:
                 cs.decision_boundary(val_patterns, val_targets, ann_model)
+                plt.savefig(f'{results_dir}/{id_dir}/{seed_dir}/validation-decision-boundary_{plot_id}.{img_type}')
             elif input_dim == 1:
                 cs.decision_boundary_1d(val_patterns, val_targets, ann_model)
-            plt.savefig(f'{results_dir}/{id_dir}/{seed_dir}/validation-decision-boundary_{plot_id}.{img_type}')
+                plt.savefig(f'{results_dir}/{id_dir}/{seed_dir}/validation-decision-boundary_{plot_id}.{img_type}')
 
         # Increment counter
         i += 1

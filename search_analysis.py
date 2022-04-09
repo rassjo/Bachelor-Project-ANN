@@ -7,25 +7,21 @@ import matplotlib.tri as tri
 
 # Define path to results.txt
 
-"""
+
 # dropout & l2:
-#static_hps_id = '18a0a2942e7e'
-#static_hps_id = '1464aef76990'
-#static_hps_id = '1a77c2bb16b9' 
-#static_hps_id = '1d0ffeda4835' 
-#static_hps_id = '32921c5284ae' 
-#var1_name = 'dropout'
-#var1_label = 'Dropout rate'
-#var2_name = 'l2'
-#var2_label = 'L2 strength'
+static_hps_id = '384147b38d9f'
+var1_name = 'dropout'
+var1_label = 'Dropout rate'
+var2_name = 'l2'
+var2_label = 'L2 strength'
 #clim_range = [0.225, 0.7] 
-#x_lim = [0, 1]
-#y_lim = [1e-6, 1]
-#is_x_log = False
-#is_y_log = True
+clim_range = None
+x_lim = [0, 1]
+y_lim = [1e-6, 1]
+is_x_log = False
+is_y_log = True
+
 """
-
-
 # patterns & l2:
 static_hps_id = '3913a54a8e78'
 var1_name = 'patterns'
@@ -37,7 +33,7 @@ x_lim = [1e+1, 1e+3]
 y_lim = [1e-6, 1]
 is_x_log = True
 is_y_log = True
-
+"""
 
 """
 # patterns & dropout:
