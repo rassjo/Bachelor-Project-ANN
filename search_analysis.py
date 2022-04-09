@@ -10,6 +10,9 @@ import matplotlib.tri as tri
 
 # dropout & l2:
 static_hps_id = '384147b38d9f'
+#static_hps_id = '1d0ffeda4835' # extra hidden nodes
+#static_hps_id = '294b8b77c209' # low learning rate
+#static_hps_id = '18616fcaad7b' # 2d dataset
 var1_name = 'dropout'
 var1_label = 'Dropout rate'
 var2_name = 'l2'

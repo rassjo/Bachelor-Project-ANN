@@ -6,18 +6,18 @@ import rng_utils as ru
 import matplotlib.pyplot as plt
 
 # Define hyperparameters
-"""
+
 # Use hyperparameters like these to check small scale step-by-step stuff
 hps = {'lrn_rate': 0.1,
-      'epochs': 10,
+      'epochs': 2,
       'val_mul': 2,
       'hidden': 3,
       'l2': 0.0,
       'dataset': 'baby',
       'dropout': 1.0}
 print_debugging_text = True
-"""
 
+"""
 # Use hyperparameters like these to check larger scale stuff
 hps = {'lrn_rate': 0.1,
       'epochs': 1000,
@@ -27,7 +27,7 @@ hps = {'lrn_rate': 0.1,
       'dataset': '10d_intercept',
       'dropout': 0.8}#1.0
 print_debugging_text = False
-
+"""
 
 # Define data seed and ann seed
 data_seed = ann_seed = 1
@@ -52,11 +52,13 @@ input_dim = len(x_trn[0]) #Get the input dimension from the training data
 # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
 layer_defines = [[hps['hidden'], act.tanh, hps['l2'], hps['dropout']],
                 [1, act.sig, hps['l2'], hps['dropout']]] # dropout applies to the inputs
+print("\ninitialising model...") if not print_debugging_text else None
 ann_model = ann.Model(input_dim, layer_defines, ann_rng, is_debugging=print_debugging_text)
+print("finished intialising model!") if not print_debugging_text else None
 
-print("\ntraining...")
+print("\ntraining...") if not print_debugging_text else None
 ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], should_save_intermediary_history=True) #training, validation, lrn_rate, epochs, minibatchsize=0
-print("finished training!")
+print("finished training!") if not print_debugging_text else None
 
 print("\nshowing history...")
 ann_model.show_history(hps['epochs'])
@@ -64,7 +66,8 @@ print("finished showing history!")
 
 plt.show()
 
-print("\nshowing decision boundary...")
+"""
+print("\nshowing decision boundary... (only applicable for 1d and 2d datasets)")
 print("Note that debugging text is disabled whilst generating decision boundaries, due to the shear number of feed forwards required.")
 ann_model.is_debugging = False
 if input_dim == 2:
@@ -74,3 +77,4 @@ elif input_dim == 1:
 print("finished showing decision boundary!")
 
 plt.show()
+"""
