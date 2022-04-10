@@ -1,4 +1,4 @@
-import ANN as ann
+import ANN_dropout_pre_fix as ann
 import activation_functions as act
 import synthetic_data_generation as sdg
 import classification_statistics as cs
@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 # Define hyperparameters
 
 # Use hyperparameters like these to check small scale step-by-step stuff
-hps = {'lrn_rate': 0.05,
+hps = {'lrn_rate': 0.1,
       'epochs': 1000,
       'val_mul': 4,
-      'hidden': 20,
+      'hidden': 15,
       'l2': 0.0,
       'dataset': '10d_intercept',
-      'dropout': 0.8,
-      'is_janky': False}
+      'dropout': 0.8}
 print_debugging_text = False
 
 # Define data seed and ann seed
@@ -43,16 +42,13 @@ layer_defines = [[hps['hidden'], act.tanh, hps['l2'], hps['dropout']],
                 [1, act.sig, hps['l2'], hps['dropout']]]
 
 print("\ninitialising model...") if not print_debugging_text else None
-ann_model = ann.Model(input_dim, layer_defines, ann_rng, is_debugging=print_debugging_text, is_janky=hps['is_janky'])
+ann_model = ann.Model(input_dim, layer_defines, ann_rng)
 print("finished intialising model!") if not print_debugging_text else None
 
 print("\ntraining...") if not print_debugging_text else None
-ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], should_save_intermediary_history=True)
+ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], history_plot=True)
 print("finished training!") if not print_debugging_text else None
 
-print("\nshowing history...")
-ann_model.show_history(hps['epochs'])
-print("finished showing history!")
 
 plt.show()
 

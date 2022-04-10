@@ -2,10 +2,10 @@ import hyperparameter_search as hs
 import sys
 
 # Define static and variable hyperparameters
-static_hps = {'lrn_rate': 0.1,
+static_hps = {'lrn_rate': 0.05,
       'epochs': 1000,
       'val_mul': 4,
-      'hidden': 15,
+      'hidden': 20,
       'patterns': None, # This is for overriding the number of patterns, typically left as None for default.
       'dataset': '10d_intercept'}
 variable_hps = [hs.variable_hp('dropout', [0, 1], is_log_dist=False, is_rev_open=True),

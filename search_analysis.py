@@ -1,24 +1,28 @@
 import matplotlib.pyplot as plt
+from matplotlib import rc, rcParams
 import numpy as np
 import classification_statistics as cs
 import txt_utils as tu
 import os
 import matplotlib.tri as tri
 
+#rcParams['text.latex.preamble'] = [r'\usepackage{sfmath}']
+
 # Define path to results.txt
 
 
 # dropout & l2:
-static_hps_id = '384147b38d9f'
+#static_hps_id = '384147b38d9f'
 #static_hps_id = '1d0ffeda4835' # extra hidden nodes
 #static_hps_id = '294b8b77c209' # low learning rate
 #static_hps_id = '18616fcaad7b' # 2d dataset
 #static_hps_id = '31ae0c6e5cc3' # extra low learning rate
+static_hps_id = '370de23f25ab'
 var1_name = 'dropout'
 var1_label = 'Dropout rate'
 var2_name = 'l2'
 var2_label = 'L2 strength'
-#clim_range = [0.225, 0.7] 
+#clim_range = [0.4, 1.5] 
 clim_range = None
 x_lim = [0, 1]
 y_lim = [1e-6, 1]
@@ -67,16 +71,17 @@ hyperparameters_to_stats = {}
 for subdir, dirs, files in os.walk(rootdir):
     for file in files:
         if (file == results_name):
-            # Open the file 
-            txt_name = os.path.join(subdir, file)
-            
-            # Collect the unique data points in the file
-            hyperparameters_to_stats.update(tu.unload_results(txt_name))
+            #if "data-seed-03" in subdir:
+                # Open the file 
+                txt_name = os.path.join(subdir, file)
+                
+                # Collect the unique data points in the file
+                hyperparameters_to_stats.update(tu.unload_results(txt_name))
 
-            # Collect the static hyperparameters
-            static_hyperparameters = tu.unload_static_hyperparameters(txt_name)
-            data_set = static_hyperparameters['dataset']
-            hidden = static_hyperparameters['hidden']
+                # Collect the static hyperparameters
+                static_hyperparameters = tu.unload_static_hyperparameters(txt_name)
+                data_set = static_hyperparameters['dataset']
+                hidden = static_hyperparameters['hidden']
 
 # Seperate the dropouts, l2s and losses for intuitive plotting 
 var1s = []
@@ -126,11 +131,18 @@ img_type = 'pdf' # Change to .pdf if generating images for thesis
 def plot_stuff(xs, ys, vals, save_as, colour_bar_label, colour_map, clim_range, x_lim, y_lim, is_x_log, is_y_log):
     fig, ax = plt.subplots()
     im = ax.scatter(xs, ys, marker=marker, c=vals, cmap=colour_map)
+    
     if isinstance(clim_range, type(None)):
         im.set_clim(min(vals), max(vals)) # This is great, but lacks consistency between plots
     else:
         im.set_clim(clim_range[0], clim_range[1]) # Consistent, for multiple plots
-    fig.colorbar(im, ax=ax, label=colour_bar_label)
+
+    cb = fig.colorbar(im, ax=ax, label=colour_bar_label)#, ticks=[-1, 0, 1])
+    dumb_guess = 0.693
+    custom_cb_ticks = list(cb.ax.get_yticks()) + [dumb_guess]
+    cb.ax.set_yticks(custom_cb_ticks)
+    cb.ax.set_ylim(min(vals), max(vals))
+
     ax.set_title(title)
     ax.set_xlabel(x_label)
 
@@ -220,16 +232,13 @@ save_as = f'tri_analysis_loss_id-{static_hps_id}.{img_type}'
 tri_plot(xs, ys, losses, save_as, 'Validation loss', colour_map, clim_range)
 """
 
-"""
+
 # Accuracy plot
 
 # Create accuracies plot
-#save_as = f'analysis_accuracies_id-{static_hps_id}.{img_type}'
-#accuracies = np.dot(accuracies, 100) # Turn into percentage
-#colour_map = 'gist_rainbow_r'#'rainbow'#'jet'
-#clim_range = [40, 100]
-#clim_range = None
-#plot_stuff(accuracies, save_as, 'Validation accuracy / %', colour_map, clim_range)
-"""
+save_as = f'analysis_accuracies_id-{static_hps_id}.{img_type}'
+accuracies = np.dot(accuracies, 100) # Turn into percentage
+plot_stuff(var1s, var2s, accuracies, save_as, 'Validation accuracy / %', colour_map, clim_range, x_lim, y_lim, is_x_log, is_y_log)
+
 
 plt.show()
