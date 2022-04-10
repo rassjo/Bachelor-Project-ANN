@@ -7,12 +7,11 @@ import warnings
 #Weights on the same COLUMN come from the same node
 
 class Model:
-    def __init__(self, input_dim, layer_defines, rng = np.random.default_rng(), is_debugging = False, is_janky = False):
+    def __init__(self, input_dim, layer_defines, rng = np.random.default_rng(), is_debugging = False):
         self.layers = [] #This is where we'll put all the layers we make
         columns = input_dim #Number of columns to use for the first weight matrix
         self.rng = rng
         self.is_debugging = is_debugging
-        self.is_janky = is_janky
         print("\ninitialising model...") if self.is_debugging else None
         #Make as many layers as we have defined properties for
         for layer_properties in layer_defines:
@@ -122,13 +121,13 @@ class Model:
         #Now go through each pattern in the mini-batch
         for n in range(0, minibatchsize):
             print(f"\ncalculating weight updates for pattern {n}...") if self.is_debugging else None
-            if not self.is_janky:
-                # Regenerate the dropout masks for each new pattern
-                for i in range(0, len(self.layers)):
-                    layer = self.layers[i]
-                    print(f"\ngenerating dropout mask for layer {i}...") if self.is_debugging else None
-                    layer.generate_dropout_mask(rng=self.rng)
-                    print(f"generated dropout mask {layer.dropout_mask}.") if self.is_debugging else None
+
+            # Regenerate the dropout masks for each new pattern
+            for i in range(0, len(self.layers)):
+                layer = self.layers[i]
+                print(f"\ngenerating dropout mask for layer {i}...") if self.is_debugging else None
+                layer.generate_dropout_mask(rng=self.rng)
+                print(f"generated dropout mask {layer.dropout_mask}.") if self.is_debugging else None
 
             # This loop is dedicated to determining how many times each weight is used (not dropped)
             for i in range(0, len(self.layers)):
@@ -203,10 +202,6 @@ class Model:
             print("\nbefore:") if self.is_debugging else None
             print(f"weights = {layer.weights}") if self.is_debugging else None
             print(f"biases = {layer.biases}") if self.is_debugging else None
-
-            if self.is_janky:
-                self.num_weight_updates[i] = np.full_like(self.num_weight_updates[i], minibatchsize)
-                self.num_bias_updates[i] = np.full_like(self.num_bias_updates[i], minibatchsize)
 
             mean_weight_updates = np.divide(self.weight_updates[i], self.num_weight_updates[i], out=np.zeros_like(self.weight_updates[i]), where=self.num_weight_updates[i]!=0)
             actual_mean_weight_updates = -(lrn_rate*mean_weight_updates + layer.l2_s*layer.weights)
@@ -311,14 +306,6 @@ class Model:
             training = [x_trn[p], d_trn[p]]
             #Restore the mini-batch size to the original value
             minibatchsize = fixed_minibatchsize
-
-            # Regenerate the dropout masks for each epoch
-            if self.is_janky:
-                for i in range(0, len(self.layers)):
-                    layer = self.layers[i]
-                    print(f"\ngenerating dropout mask for layer {i}...") if self.is_debugging else None
-                    layer.generate_dropout_mask(rng=self.rng)
-                    print(f"generated dropout mask {layer.dropout_mask}.") if self.is_debugging else None
 
             #Now it's time to go through all of the mini-batches
             for minibatch_nr in range(0,N//fixed_minibatchsize):
