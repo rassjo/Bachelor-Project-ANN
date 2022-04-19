@@ -36,6 +36,23 @@ def unload_results(txt_name):
             
         return hyperparameters_to_stats
 
+def unload_seeds(txt_name):
+    with open(txt_name, 'r') as data:
+        seeds = {}
+        for line in data:
+            if 'seed' not in line:
+                continue
+            
+            line = str.lower(line)
+            line = line.replace('seed', '')
+            line = line.replace('\n', '')
+            line = line.replace(' ', '')
+            line = line.split(':')
+
+            seeds[line[0]] = int(line[1])
+
+        return seeds
+
 def write_hyperparameters(name, meta_data, column_labels):
     # If the document already exists, then print a warning
     try:

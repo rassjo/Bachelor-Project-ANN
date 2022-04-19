@@ -198,7 +198,7 @@ def dual_hyperparameter_search(static_hps, variable_hps, data_seed = -1, ann_see
 
         # Properties of all the layers
         # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
-        layer_defines = [[hps['hidden'], act.tanh, hps['l2'], hps['dropout']],
+        layer_defines = [[hps['hidden'], act.tanh, hps['l2'], 1.0], # turning off dropout on inputs
                         [1, act.sig, hps['l2'], hps['dropout']]]
         ann_model = ann.Model(input_dim, layer_defines, ann_rng)
 

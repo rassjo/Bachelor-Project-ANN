@@ -342,7 +342,6 @@ class Layer_Dense:
     # the right activation function and dropout rate
     def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 1, rng = np.random.default_rng()):
         self.weights = rng.normal(0, 1/np.sqrt(dim), size = (nodes, dim))
-        #self.weights = rng.standard_normal(size = (nodes, dim)) # old
         self.biases = rng.standard_normal(size = (1, nodes))
         self.w_size = self.weights.shape
         self.b_size = self.biases.shape
@@ -396,17 +395,22 @@ class Layer_Dense:
         dropout_mask = self.dropout_mask
         if not self.dropout_enabled:
             # Do not drop any nodes if dropout is disabled
-            dropout_mask = np.full(self.dropout_mask.size, False)
+            dropout_mask = np.full(self.dropout_mask.size, False)          
     
         # Create a masked array by applying the dropout_mask to the input
         input_w_dropout = np.ma.MaskedArray(self.input, dropout_mask, fill_value=0) 
-        return(input_w_dropout)
+        return(input_w_dropout) 
 
     # Calculate the output of the layer
     def calc_output(self, X):
         self.input = X
         # Get the input with the dropout mask applied
         input_w_dropout = self.get_input_w_dropout()
+
+        # If it is getting training or validation loss, then multiply by the probability
+        if not self.dropout_enabled:
+            input_w_dropout *= self.dropout_rate
+
         # Calculate the argument(s) of the layer
         # NOTE that dropout is not applied to biases, but that 
         argument = (np.ma.dot(self.weights, input_w_dropout, strict=True) + self.biases).flatten()

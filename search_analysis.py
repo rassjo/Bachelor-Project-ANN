@@ -17,7 +17,8 @@ import matplotlib.tri as tri
 #static_hps_id = '294b8b77c209' # low learning rate
 #static_hps_id = '18616fcaad7b' # 2d dataset
 #static_hps_id = '31ae0c6e5cc3' # extra low learning rate
-static_hps_id = '370de23f25ab'
+static_hps_id = '3a1625ccef53'
+#static_hps_id = 'f5699d60a53'
 var1_name = 'dropout'
 var1_label = 'Dropout rate'
 var2_name = 'l2'
@@ -242,3 +243,6 @@ plot_stuff(var1s, var2s, accuracies, save_as, 'Validation accuracy / %', colour_
 
 
 plt.show()
+
+
+print("remember that patterns needs to be doubled, if overwritten")
