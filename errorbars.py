@@ -84,7 +84,7 @@ plt.xlabel(plot_scale + ' # patterns')
 plt.ylabel(plot_scale + ' best lambdas')
 plt.title('best lambdas vs # patterns ')
 plt.legend()
-plt.savefig('L2_Sigma_1_plot_'+ str(plot_scale) + '.png')
+plt.savefig(plt.savefig('patterns_lambda_plot_' + str(plot_scale) + '.png')
 plt.show()
 plt.clf()
 
