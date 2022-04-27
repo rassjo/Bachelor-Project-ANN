@@ -64,6 +64,8 @@ x_axis = list(all_lambda.keys())
 y_axis = [meancalc(np.array(all_lambda[point])) for point in x_axis]
 error_bars = [SEMcalc(np.array(all_lambda[point])) for point in x_axis]  
 
+#Plot the values and their error bars
+plt.figure()
 
 if (log_plot):
     # Convert x values to logarithmic form (y-axis are already logarithmic if log10 is chosen)
@@ -78,7 +80,7 @@ if (log_plot):
     print("$y$-intercept = " + str(linear_regression.coefficients[1]))
     
     
-#Plot the values and their error bars
+
 plt.errorbar(x_axis, y_axis, yerr=error_bars, fmt='o', color='r', ecolor='r', capsize=5, label='best lambdas vs # patterns')
 plt.xlabel(plot_scale + ' # patterns')
 plt.ylabel(plot_scale + ' best lambdas')
