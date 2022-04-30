@@ -17,7 +17,7 @@ class Model:
         for layer_properties in layer_defines:
             #Create a dense layer
             self.layers.append(Layer_Dense(columns, *layer_properties,
-                                           rng = self.rng))
+                                           rng = rng))
             #Then we want to know how many columns the weight matrix in the
             #next layer should have, by looking at how many rows (i.e. how the
             #many nodes) the current one has.
@@ -206,9 +206,14 @@ class Model:
             mean_weight_updates = np.divide(self.weight_updates[i], self.num_weight_updates[i], out=np.zeros_like(self.weight_updates[i]), where=self.num_weight_updates[i]!=0)
             actual_mean_weight_updates = -(lrn_rate*mean_weight_updates + layer.l2_s*layer.weights)
             layer.weights += actual_mean_weight_updates
+
             mean_bias_updates = np.divide(self.bias_updates[i], self.num_bias_updates[i], out=np.zeros_like(self.bias_updates[i]), where=self.num_bias_updates[i]!=0)
             actual_mean_bias_updates = -(lrn_rate*mean_bias_updates)
             layer.biases += actual_mean_bias_updates
+
+            #print("self.weight_updates:", self.weight_updates[i])
+            #print("layer.l2_s:", layer.l2_s)
+            #print("self.num_weight_updates", self.num_weight_updates[i])
 
             print("\nthe update:") if self.is_debugging else None
             print(f"num weight updates = {self.num_weight_updates[i]}") if self.is_debugging else None
@@ -343,6 +348,8 @@ class Layer_Dense:
     def __init__(self, dim, nodes, activation, l2_s, dropout_rate = 1, rng = np.random.default_rng()):
         self.weights = rng.normal(0, 1/np.sqrt(dim), size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
+        #print("initialised weights:", self.weights)
+        #print("initialised biases:", self.biases)
         self.w_size = self.weights.shape
         self.b_size = self.biases.shape
         self.activation = activation
@@ -381,9 +388,16 @@ class Layer_Dense:
         # Generate dropout mask
         is_all_dropped = True
         while is_all_dropped:
+            """
+            if (dropout_rate == 1): # Added this to get consistent weight initialisations whilst drawing comparisons to ANN_main.py
+                self.dropout_mask = np.full([num_inputs], False)
+                is_all_dropped = False
+                break
+            """
             # Generate dropout mask, until the generated mask keeps at least one value
             # (True means drop value, False means keep value)
             self.dropout_mask = rng.choice(a=[False, True], size=num_inputs, p=[dropout_rate, 1-dropout_rate])
+            
             is_all_dropped = np.all(self.dropout_mask == True)
             # If dropout_rate is 0, then all MUST be dropped, so don't try to keep at least one value
             if (dropout_rate == 0):

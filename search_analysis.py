@@ -17,8 +17,19 @@ import matplotlib.tri as tri
 #static_hps_id = '294b8b77c209' # low learning rate
 #static_hps_id = '18616fcaad7b' # 2d dataset
 #static_hps_id = '31ae0c6e5cc3' # extra low learning rate
-static_hps_id = '3a1625ccef53'
+#static_hps_id = '3a1625ccef53'
 #static_hps_id = 'f5699d60a53'
+
+# 1000 epochs
+#static_hps_id = '7e1c2c93b8d' # 5 patterns
+static_hps_id = '366f4c71d23c' # 50 patterns
+#static_hps_id = '10c4427ed35e' # 500 patterns
+
+# 4000 epochs
+#static_hps_id = '2166798a9a93' # 5 patterns
+#static_hps_id = '10906c144a79' # 50 patterns
+#static_hps_id = '2a48f9403264' # 500 patterns
+
 var1_name = 'dropout'
 var1_label = 'Dropout rate'
 var2_name = 'l2'
@@ -173,7 +184,6 @@ def tri_plot(xs, ys, vals, save_as, colour_bar_label, colour_map, clim_range):
     #triang = tri.Triangulation(xs_ys[:, 0], xs_ys[:, 1])
 
     #refiner = tri.UniformTriRefiner(triang)
-    #tri_refi, z_test_refi = refiner.refine_field(vals, subdiv=3)
     #tri.TriAnalyzer(triang)
 
     xi, yi = np.meshgrid(np.linspace(min(xs), max(xs), 100), np.linspace(min(ys), max(ys), 100))
@@ -182,9 +192,8 @@ def tri_plot(xs, ys, vals, save_as, colour_bar_label, colour_map, clim_range):
 
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
-    im1 = ax.contourf(xi, yi, zi_cubic_geom)
+    im1 = ax.contourf(xi, yi, zi_cubic_geom, cmap=colour_map)
     #im1 = ax.tricontourf(triang, vals, cmap=colour_map)
-    #im1 = ax.tricontourf(tri_refi, z_test_refi, cmap=colour_map)
     #im2 = ax.triplot(triang)
 
     if isinstance(clim_range, type(None)):
@@ -216,7 +225,7 @@ if clim_range != None:
 
 plot_stuff(var1s, var2s, losses, save_as, 'Validation loss', colour_map, clim_range, x_lim, y_lim, is_x_log, is_y_log)
 
-""" 
+
 # Shaded plot
 
 # Standardise data
@@ -231,7 +240,6 @@ ys = ys/ys_norm
 
 save_as = f'tri_analysis_loss_id-{static_hps_id}.{img_type}'
 tri_plot(xs, ys, losses, save_as, 'Validation loss', colour_map, clim_range)
-"""
 
 
 # Accuracy plot

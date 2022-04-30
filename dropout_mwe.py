@@ -8,26 +8,35 @@ import matplotlib.pyplot as plt
 # Define hyperparameters
 
 # Use hyperparameters like these to check small scale step-by-step stuff
-"""
 hps = {'lrn_rate': 0.1, # Learning rate
       'epochs': 2, # Number of epochs
       'val_mul': 1, # Factor of validation patterns to training patterns
       'hidden': 3, # Number of hidden nodes (single-hidden-layer)
       'l2': 0.0, # L2 strength
       'dataset': 'baby', # The data-set (Check 'data_presets.txt' for options)
-      'dropout': 0.8} # The keep-rate probability applied to each input and hidden node
+      'dropout': 0.5} # The keep-rate probability applied to each input and hidden node
 print_debugging_text = True
-"""
 
 # Use hyperparameters like these to check large scale stuff
+"""
 hps = {'lrn_rate': 0.1,
-      'epochs': 1000,
+      'epochs': 2,
+      'val_mul': 4,
+      'hidden': 3,
+      'l2': 0.001,
+      'dataset': 'baby',
+      'dropout': 1.0}
+"""
+"""
+hps = {'lrn_rate': 0.1,
+      'epochs': 3000,
       'val_mul': 4,
       'hidden': 20,
       'l2': 0.0,
       'dataset': 'hard_10d',
-      'dropout': 1.0}
-print_debugging_text = False
+      'dropout': 1.0,
+      'old_ANN': False}
+"""
 
 # Define data seed and ann seed
 data_seed = ann_seed = 2
@@ -70,6 +79,7 @@ print("finished showing history!")
 
 plt.show()
 
+"""
 print("\nshowing decision boundary... (only applicable for 1d and 2d datasets)")
 print("Note that debugging text is disabled whilst generating decision boundaries, due to the shear number of feed forwards required.")
 ann_model.is_debugging = False
@@ -80,4 +90,4 @@ elif input_dim == 1:
 print("finished showing decision boundary!")
 
 plt.show()
-
+"""

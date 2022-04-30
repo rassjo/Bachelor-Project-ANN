@@ -1,21 +1,21 @@
-import hyperparameter_search as hs
+import hyperparameter_search_old as hs
 import sys
 
 # 1) Collect the bulk of the points
 print("Collecting bulk of points:")
 # Define static and variable hyperparameters
 static_hps = {'lrn_rate': 0.1,
-      'epochs': 1000,#4000,
+      'epochs': 3000,#1000
       'val_mul': 4,
       'hidden': 20,
       'dataset': 'hard_10d',
-      'dropout': 1.0,
-      'new_code': True}
+      'old_ANN': True,
+      'fixed_initialisation': True}
 num_parts = 6
-num_samples = 1
+num_samples = 10
 # Remember that patterns is the number of patterns belonging to each distribution!!!
-variable_hps = [hs.variable_hp('patterns', [5, 50.5], is_random_dist=False, num_parts=num_parts, is_log_dist=True, is_rev_open=True, make_int=True), # consider using an ODD number of parts
-      hs.variable_hp('l2', [1e-6, 1], is_log_dist=True, is_rev_open=False)]
+variable_hps = [hs.variable_hp('patterns', [5, 500.5], is_random_dist=False, num_parts=num_parts, is_log_dist=True, is_rev_open=False, make_int=True), # consider using an ODD number of parts
+      hs.variable_hp('l2', [1e-6, 1e-1], is_log_dist=True, is_rev_open=False)]
 
 # Define data seed and ann seed
 try:
@@ -34,6 +34,7 @@ max_iterations = num_parts * num_samples # This is the number of variations to s
 # Perform dropout & l2 dual hybrid search
 hs.dual_hyperparameter_search(static_hps, variable_hps, data_seed, ann_seed, search_seed, max_iterations, should_make_plots, img_type)
 
+"""
 
 # 2) Collect the zero-l2 points
 print("\nCollecting zero-l2 points...")
@@ -45,7 +46,7 @@ variable_hps = [hs.variable_hp('patterns', [5, 500.5], is_random_dist=False, num
 
 hs.dual_hyperparameter_search(static_hps, variable_hps, data_seed, ann_seed, search_seed, max_iterations, should_make_plots, img_type)
 
-"""
+
 # 3) Collect the x10 pattern points
 print("\nCollecting x10 pattern points...")
 

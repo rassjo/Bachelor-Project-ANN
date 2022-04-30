@@ -1,4 +1,4 @@
-import ANN as ann
+import ANN_main as ann
 import numpy as np
 import activation_functions as act
 import synthetic_data_generation as sdg
@@ -197,19 +197,13 @@ def dual_hyperparameter_search(static_hps, variable_hps, data_seed = -1, ann_see
             input_dim = len(trn[0][0])
 
         # Properties of all the layers
-        # Recipe for defining a layer: [number of nodes, activation function, L2, dropout]
-        layer_defines = [[hps['hidden'], act.tanh, hps['l2'], 1],#0.6+0.4*hps['dropout']], # reduce dropout rate on inputs by a factpr of x0.4
-                        [1, act.sig, hps['l2'], hps['dropout']]]
-
-        print(layer_defines)
-
+        # Recipe for defining a layer: [number of nodes, activation function, L2]
+        layer_defines = [[hps['hidden'], act.tanh, hps['l2']],
+                        [1, act.sig, hps['l2']]]
         ann_model = ann.Model(input_dim, layer_defines, ann_rng)
 
         # Train the network
-        ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], 0, should_save_intermediary_history=should_make_plots)
-
-        if should_make_plots:
-            ann_model.show_history(hps['epochs'])
+        ann_model.train(trn, val, hps['lrn_rate'], hps['epochs'], history_plot=should_make_plots)
 
         # Get final validation loss
         fin_val_loss = ann_model.history['val'][-1] 

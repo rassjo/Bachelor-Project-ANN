@@ -8,12 +8,21 @@ import matplotlib.pyplot as plt
 # Define hyperparameters
 
 # Use hyperparameters like these to check small scale step-by-step stuff
+"""
+hps = {'lrn_rate': 0.1,
+      'epochs': 2,
+      'val_mul': 4,
+      'hidden': 3,
+      'l2': 0.001,
+      'dataset': 'baby'}
+"""
 hps = {'lrn_rate': 0.1,
       'epochs': 1000,
       'val_mul': 4,
-      'hidden': 15,
+      'hidden': 20,
       'l2': 0.0,
-      'dataset': '10d_intercept'}
+      'dataset': 'hard_10d',
+      'old_ANN': True}
 print_debugging_text = False
 
 # Define data seed and ann seed

@@ -111,6 +111,11 @@ class Model:
           #the derivative of the L2-term
           layer.weights -= (lrn_rate*self.weight_updates[i]/minibatchsize + layer.l2_s*layer.weights)
           layer.biases -= lrn_rate*self.bias_updates[i]/minibatchsize
+          
+          #print("self.weight_updates:", self.weight_updates[i])
+          #print("layer.l2_s:", layer.l2_s)
+          #print("minibatchsize", minibatchsize)
+
         self.layers.reverse() #Return to original order
 
     def show_history(self,epochs):
@@ -217,8 +222,10 @@ class Layer_Dense:
     #Initialize the dense layer with inputs random weights & biases and
     #the right activation function
     def __init__(self, dim, nodes, activation, l2_s, rng=np.random.default_rng()):
-        self.weights = rng.standard_normal(size = (nodes, dim))
+        self.weights = rng.normal(0, 1/np.sqrt(dim), size = (nodes, dim))
         self.biases = rng.standard_normal(size = (1, nodes))
+        #print("initialised weights:", self.weights)
+        #print("initialised biases:", self.biases)
         self.w_size = self.weights.shape
         self.b_size = self.biases.shape
         self.activation = activation

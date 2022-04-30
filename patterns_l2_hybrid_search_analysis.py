@@ -26,17 +26,23 @@ def meancalc(x):
     return sum(x)/len(x)
 
 # Define path to results.txt
+#static_hps_ids = ['10f5ef7e1417']
+
+#static_hps_ids = ['626ffedea6c']
+
 #static_hps_ids = ['77e153013f4']
 
-static_hps_ids = ['72d8278ec4b', '2a33c2b1c82e', '5011b95e557']
+#static_hps_ids = ['72d8278ec4b', '2a33c2b1c82e', '5011b95e557']
 #static_hps_ids = ['72d8278ec4b']
 #static_hps_ids = ['2a33c2b1c82e']
 #static_hps_ids = ['5011b95e557']
 
-#static_hps_ids = ['25b5feffb9c7', '2b3b4ce3670d', '3caceb59003a']
-#static_hps_ids = ['25b5feffb9c7']
-#static_hps_ids = ['2b3b4ce3670d']
-#static_hps_ids = ['3caceb59003a']
+#static_hps_ids = ['72d8278ec4b', '2a33c2b1c82e', '346fc9059df4']
+#static_hps_ids = ['72d8278ec4b']
+#static_hps_ids = ['2a33c2b1c82e']
+static_hps_ids = ['346fc9059df4']
+
+#static_hps_ids = ['10f323679d3b']
 
 results_dir = 'patterns_l2_hybrid_search_results'
 results_name = 'results.txt'
@@ -205,7 +211,11 @@ for key in var3_to_var1_to_list_of_opt_var2:
 
     var3_to_plot[var3] = {'xs': xs, 'ys': ys, 'es': es}
 
+print("min loss =", min(all_losses))
+print("max loss =", max(all_losses))
 
+clim_min = 0.2800250314573721
+clim_max = 2.4007655598706323
 
 marker = '.'
 title = f'Random hyperparameter search of L2 and dropout'
@@ -213,6 +223,8 @@ x_label = 'Patterns'
 y_label = 'Optimal L2 strength'
 is_log_plot = True
 img_type = 'pdf' # Change to .pdf if generating images for thesis
+
+var3_to_reg_idx = {1.0: [2, 7], 0.8: [2, 7], 0.5: [2, 6]}
 
 # Plot the scatter plot with a color bar
 def plot_stuff(save_as):
@@ -230,7 +242,8 @@ def plot_stuff(save_as):
 
     if len(var3s) == 1:
         im = ax.scatter(all_xs, all_ys, marker=marker, alpha=1, c=all_losses, cmap=colour_map)
-        cb = fig.colorbar(im, ax=ax)
+        im.set_clim(clim_min, clim_max)
+        cb = fig.colorbar(im, ax=ax, label='Validation loss')
     else:
         im = ax.scatter(all_xs, all_ys, marker=marker, c='k', alpha=0.05)
 
@@ -258,7 +271,7 @@ def plot_stuff(save_as):
                     loss_run.append(loss)
 
                 im = ax.scatter(xs_run, ys_run, marker='o', alpha=1, c=loss_run, cmap=colour_map)
-                im.set_clim(min(all_losses), max(all_losses))
+                im.set_clim(clim_min, clim_max)
 
                 plt.plot(xs_run, ys_run, '--', alpha = 0.5)
             
@@ -268,7 +281,6 @@ def plot_stuff(save_as):
         #col = sc.get_facecolors()[0].tolist()
         #ax.errorbar(xs, ys, yerr=es, fmt = 'o', color=invis_col, ecolor=col, capsize=4, label=f'with error bars')
 
-
         if len(var3s) == 1:
             col = 'k'
             eb = ax.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=4, c=col, label=f'dropout = {var3}')
@@ -276,9 +288,15 @@ def plot_stuff(save_as):
             eb = ax.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=4, label=f'dropout = {var3}')
             col = eb[0].get_color()
 
+        # Linear regression...
+        #xs_reg = xs[2:6]
+        xs_reg = xs[var3_to_reg_idx[var3][0]:var3_to_reg_idx[var3][1]]
+        #ys_reg = ys[2:6]
+        ys_reg = ys[var3_to_reg_idx[var3][0]:var3_to_reg_idx[var3][1]]
+        
         # Make data logarithmic
-        xs_log = np.log10(xs)
-        ys_log = np.log10(ys)
+        xs_log = np.log10(xs_reg)
+        ys_log = np.log10(ys_reg)
 
         m, c = np.polyfit(xs_log, ys_log, 1)
         f = lambda x : 10**(m*np.log10(x) + c)
@@ -287,16 +305,18 @@ def plot_stuff(save_as):
         print('c', c)
         print()
 
-        fit = f(np.array(xs))
-        plt.plot(xs, fit, '--', c = col, alpha = 1.0)
+        fit = f(np.array(xs_reg))
+        plt.plot(xs_reg, fit, '--', c = col, alpha = 1.0)
 
     ax.set_xscale('log')
 
-    ax.set_yscale('log')
-    #ax.set_yscale('symlog', linthresh=1e-6)
+    #ax.set_yscale('log')
+    ax.set_yscale('symlog', linthresh=1e-6)
 
-    ax.set_ylim(1e-6, 1e-1)
-    #ax.set_ylim(-.25e-6, 1e-1)
+    ax.set_xlim(None, 1.5e+3)
+
+    #ax.set_ylim(1e-6, 1e-1)
+    ax.set_ylim(-.25e-6, 1e-1)
 
     plt.legend(loc = 'upper right')
     plt.savefig(f'{results_dir}/{save_as}')
