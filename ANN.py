@@ -234,12 +234,20 @@ class Model:
 
         # Plot the error over all epochs
         plt.figure()
-        plt.plot(np.arange(0, epochs+1), self.history['trn'], 'orange', label='Training error')
-        plt.plot(np.arange(0, epochs+1), self.history['val'], 'blue', label='Validation error')
+        plt.plot(np.arange(0, epochs+1), self.history['trn'], 'tab:blue', label='Training loss')        
+        plt.plot(np.arange(0, epochs+1), self.history['val'], 'tab:red', label='Validation loss')
+        print(np.argmin(np.array(self.history['val'])))
+        print(np.min(np.array(self.history['val'])))
+        plt.plot(np.argmin(np.array(self.history['val'])), np.min(np.array(self.history['val'])), 'o', color = 'tab:red')
+        plt.plot([1000, 1000], [0, 1.0], '--', color='k', linewidth=0.8)
+        #plt.plot([1000, 1000], [0, self.history['val'][1000+1]], '--k')
+        #plt.plot([1000], [self.history['val'][1000+1]], 'ok')
         plt.xlabel('Epochs')
-        plt.ylabel('Error')
-        plt.title('Error over epochs')
-        plt.legend()
+        plt.ylabel('Loss $E$')
+        plt.xlim(0, epochs)
+        plt.ylim(0, 0.82)
+        #plt.title('Error over epochs')
+        plt.legend(loc=1)
         plt.draw()
 
     def save_history(self, trn, val):

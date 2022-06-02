@@ -4,7 +4,6 @@ import numpy as np
 import classification_statistics as cs
 import txt_utils as tu
 import os
-import statsmodels.api as sm
 #import errorbars as eb
 
 def SEMcalc(x):
@@ -51,15 +50,10 @@ def meancalc(x):
 #static_hps_ids = ['2a33c2b1c82e'] # 0.8 1000
 #static_hps_ids = ['72d8278ec4b'] # 1.0 1000
 
-#static_hps_ids = ['e90e8a81631', '454e254406b', '20b2393a4b51']
+static_hps_ids = ['e90e8a81631', '454e254406b', '20b2393a4b51']
 #static_hps_ids = ['e90e8a81631'] # 0.5 dropout 4000 epochs
 #static_hps_ids = ['454e254406b'] # 0.8 4000
-static_hps_ids = ['20b2393a4b51'] # 1.0 4000
-
-#var3_to_reg_idx = {1.0: [1, 7], 0.8: [1, 7], 0.5: [1, 5]} #1000
-var3_to_reg_idx = {1.0: [1, 9], 0.8: [1, 8], 0.5: [1, 7]} #4000
-
-test_seed = None
+#static_hps_ids = ['20b2393a4b51'] # 1.0 4000
 
 results_dir = 'patterns_l2_hybrid_search_results'
 results_name = 'results.txt'
@@ -157,7 +151,6 @@ for rootdir in rootdirs:
                     #list_of_opt_var2 = var3_to_var1_to_list_of_opt_var2[var3][var1]
                     list_of_opt_var2 = var3_to_var1_to_lists_of_opt_var2_and_loss[var3][var1]['var2']
                     list_of_min_loss = var3_to_var1_to_lists_of_opt_var2_and_loss[var3][var1]['loss']
-
                     list_of_opt_var2.append(opt_var2)
                     list_of_min_loss.append(min_loss)
 
@@ -170,7 +163,7 @@ all_plot = {}
 all_xs = []
 all_ys = []
 all_losses = []
-
+test_seed = None
 for key in seed_to_hyperparameters_to_stats:
     seed = key
     if not isinstance(test_seed, type(None)):
@@ -202,7 +195,6 @@ for key in var3_to_var1_to_lists_of_opt_var2_and_loss:
     var3_to_run_to_plot[var3] = {}
 
     for key in var1_to_lists_of_opt_var2_and_loss:
-        
         var1 = key
         list_of_opt_var2 = var1_to_lists_of_opt_var2_and_loss[var1]['var2']
         list_of_min_loss = var1_to_lists_of_opt_var2_and_loss[var1]['loss']
@@ -213,15 +205,10 @@ for key in var3_to_var1_to_lists_of_opt_var2_and_loss:
         #print(list_of_opt_var2)
         #print(np.log10(np.array(list_of_opt_var2)))
 
-        # use these to get easy errorbars (and no ys = 10**ys):
-        ys.append(meancalc(np.array(list_of_opt_var2)))    
-        es.append(SEMcalc(np.array(list_of_opt_var2)))
-
-        # use these to get errorbar for lambda^* = 0 (and later ys = 10**ys):
-        #ys.append(meancalc(np.log10(np.array(list_of_opt_var2))))    
+        ys.append(meancalc(np.log10(np.array(list_of_opt_var2))))
+        
         #es.append(SEMcalc(np.array(list_of_opt_var2)))
-
-        #es.append(SEMcalc(np.log10(np.array(list_of_opt_var2))))
+        es.append(SEMcalc(np.log10(np.array(list_of_opt_var2))))
 
         for run_idx in range(0, len(list_of_opt_var2)):
             if isinstance(var3_to_run_to_plot[var3].get(run_idx, None), type(None)):
@@ -257,13 +244,13 @@ for key in var3_to_var1_to_lists_of_opt_var2_and_loss:
                 #loss = stats['loss']
                 var3_to_run_to_plot[var3][run_idx] = {'xs': [var1], 'ys': [list_of_opt_var2[run_idx]], 'losses':[list_of_min_loss[run_idx]]}
 
-    #print(es)
+    print(es)
     es = np.array(es)
     #es = 0.434*es/ys
 
-    #print(ys)
+    print(ys)
 
-    ys = np.array(ys)
+    #ys = np.array(ys)
     #ys = 10**ys
 
     #print(es)
@@ -282,7 +269,7 @@ print("max loss =", max(all_losses))
 
 #clim_min = None
 #clim_max = None
-clim_min = 0.20510999114294412
+clim_min = 0.20516624519951462
 clim_max = 3.422007943213292 / 4
 
 marker = '.'
@@ -290,9 +277,10 @@ marker = '.'
 x_label = f'Training patterns $N$' #r'Training patterns $N_\mathrm{training}$'
 y_label = f'L$_2$-strength $\lambda$'
 is_log_plot = True
-img_type = 'svg' # Change to .pdf if generating images for thesis
+img_type = 'pdf' # Change to .pdf if generating images for thesis
 
-alpha_val = 1
+#var3_to_reg_idx = {1.0: [1, 7], 0.8: [0, 6], 0.5: [2, 5]} #1000
+var3_to_reg_idx = {1.0: [3, 8], 0.8: [3, 8], 0.5: [2, 5]} #4000
 
 # Plot the scatter plot with a color bar
 def plot_stuff(save_as):
@@ -315,102 +303,33 @@ def plot_stuff(save_as):
 
     colour_map = 'gist_rainbow'#'gnuplot2'#'turbo'
 
-    if len(var3s) == 1:
-        im = ax.scatter(all_xs, all_ys, marker=marker, alpha=alpha_val, c=all_losses, cmap=colour_map)
-        im.set_clim(clim_min, clim_max)
-        im2 = ax2.scatter(all_xs, all_ys, marker=marker, alpha=alpha_val, c=all_losses, cmap=colour_map)
-        im2.set_clim(clim_min, clim_max)
-
-        #fig.subplots_adjust(right=0.8)
-        #cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        #cb = fig.colorbar(im, cax=cbar_ax, label='Validation loss')
-
-        
-        cb = fig.colorbar(im, ax=axes.ravel().tolist(), label='Validation loss $E$')#, ticks=[-1, 0, 1])
-
-        custom_cb_ticklabels = ['{:.1f}'.format(a) for a in list(cb.ax.get_yticks())]
-        custom_cb_ticklabels.remove('0.7')
-        #custom_cb_ticklabels = ['{:.1f}'.format(a).rstrip('0').rstrip('.') for a in list(cb.ax.get_yticks())]
-        dumb_guess = 0.693
-        custom_cb_ticklabels.append(f'$\mathbf{{{dumb_guess:.3f}}}$')
-        custom_cb_ticklabels.append(f'$\mathbf{{{clim_max:.2f}+}}$')
-        custom_cb_ticklabels.append(f'0.2')
-        custom_cb_ticks = list(cb.ax.get_yticks()) + [dumb_guess, clim_max, clim_min]
-        custom_cb_ticks.remove(0.7)
-        cb.ax.set_yticks(custom_cb_ticks)
-        cb.ax.set_yticklabels(custom_cb_ticklabels)
-        cb.ax.set_ylim(clim_min, clim_max)
-        
-        
-    else:
-        None
-        #im = ax.scatter(all_xs, all_ys, marker=marker, c='k', alpha=0.05)
-        #im2 = ax2.scatter(all_xs, all_ys, marker=marker, c='k', alpha=0.05)
-
     for var3 in var3s:
         plot = var3_to_plot[var3]
         xs = plot['xs']
         ys = plot['ys']
         es = plot['es']
 
-        if len(var3s) == 1:
-            run_to_plot = var3_to_run_to_plot[var3]
-            for run_idx in run_to_plot:
-                # Plot the individual samples
-                plot_run = run_to_plot[run_idx]
-                xs_run = plot_run['xs']
-                ys_run = plot_run['ys']
-                losses_run = plot_run['losses']
-
-                """
-                #1. get ys_run index from all_ys
-                loss_run = []
-                for y in ys_run:
-                    #idx = all_ys.index(y)
-                    for idx, elem in enumerate(all_ys):
-                        if elem == y:
-                            # if the loss of this value is the same as the loss of the loss_run... hmm but that's how it's determined
-                            break
-                            print(f"{y} is found at index {idx}")
-               
-                    #2. get all_loss value from all_losses
-                    loss = all_losses[idx]
-                    loss_run.append(loss)
-                """
-
-                im = ax.scatter(xs_run, ys_run, marker='o', alpha=alpha_val, c=losses_run, cmap=colour_map)
-                im2 = ax2.scatter(xs_run, ys_run, marker='o', alpha=alpha_val, c=losses_run, cmap=colour_map)
-                im.set_clim(clim_min, clim_max)
-                im2.set_clim(clim_min, clim_max)
-
-                # Uncomment for tracing individual seed runs
-                #ax.plot(xs_run, ys_run, '--', alpha = 0.5)
-                #ax2.plot(xs_run, ys_run, '--', alpha = 0.5)
-            
-
+        print("ys,", ys)
+        
         #invis_col = (0,0,0,0)
         #sc = ax.scatter(xs, ys, marker = 'o', label=f'dropout = {key}')
         #col = sc.get_facecolors()[0].tolist()
         #ax.errorbar(xs, ys, yerr=es, fmt = 'o', color=invis_col, ecolor=col, capsize=4, label=f'with error bars')
+
+        #ys = np.array(ys)
+        #ys = np.log10(ys)
+        #print('ys:', ys)
 
         es = np.array(es)
         np.nan_to_num(es, copy=False)
         if len(var3s) == 1:
             col = 'k'
 
-            """
-            for p in range(0, len(es)):
-                e = es[p]
-                #if isinstance(e, type(np.nan)):
-                if e == np.nan:
-                    es[p] = 0
-            """
-
-            eb = ax.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=6, c=col, label=f'$P$ = {(1-var3):.1f}', mfc='w')
-            eb = ax2.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=6, c=col, label=f'$P$ = {(1-var3):.1f}', mfc='w')
+            eb = ax.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=4, c=col, label=f'$P$ = {(1-var3):.1f}')
+            eb = ax2.errorbar(xs, 10**np.array(ys), yerr=es, fmt = 'o', capsize=4, c=col, label=f'$P$ = {(1-var3):.1f}')
         else:
-            eb = ax.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=6, label=f'$P$ = {(1-var3):.1f}', mfc='w')
-            eb = ax2.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=6, label=f'$P$ = {(1-var3):.1f}', mfc='w')
+            eb = ax.errorbar(xs, ys, yerr=es, fmt = 'o', capsize=4, label=f'$P$ = {(1-var3):.1f}') 
+            eb = ax2.errorbar(xs, 10**np.array(ys), yerr=es, fmt = 'o', capsize=4, label=f'$P$ = {(1-var3):.1f}')
             col = eb[0].get_color()
 
         # Linear regression...
@@ -421,45 +340,44 @@ def plot_stuff(save_as):
         
         # Make data logarithmic
         xs_log = np.log10(xs_reg)
+        #print(ys_reg)
+        #xs_log = xs_reg
+        ys_log = ys_reg
 
-        ys_log = np.log10(ys_reg)
+        print(ys_log)
+
+        #ys_log = np.log10(ys_reg)
 
         m, c = np.polyfit(xs_log, ys_log, 1)
-        #print(ys_log)
         f = lambda x : 10**(m*np.log10(x) + c)
         print('dropout', 1-var3)
         print('m', m)
         print('c', c)
-
-        # begin stats stuff
-        x = sm.add_constant(xs_log)
-        model = sm.OLS(ys_log, x)
-        results = model.fit()
-        #print("m", results.params[1], "c", results.params[0])
-        print(f"m: ${results.params[1]:.2f} \pm {results.bse[1]:.2f}$")
-        #print("m_e", results.bse[1], "c_e", results.bse[0])
-        print(f"c: ${results.params[0]:.2f} \pm {results.bse[0]:.2f}$")
-        # end stats stuff
+        print()
 
         fit = f(np.array(xs_reg))
+        fit = np.log10(fit)
+        print(fit)
         ax.plot(xs_reg, fit, '--', c = col, alpha = 1.0)
-        ax2.plot(xs_reg, fit, '--', c = col, alpha = 1.0)
-
-        print()
+        #ax2.plot(xs_reg, fit, '--', c = col, alpha = 1.0)
 
     ax.set_xscale('log')
     ax2.set_xscale('log')
 
-    ax.set_yscale('log')#, nonposy="clip")
+    ax.set_yscale('linear')
+    #ax.set_yscale('log')#, nonposy="clip")
     #ax.set_yscale('symlog', linthresh=1e-5)
     #ax.set_yscale('log')
+    #ax2.set_yscale('linear')
     ax2.set_yscale('symlog', linthresh=.5e-5)#, nonposy="clip")
 
     #ax.set_xlim(None, 1.5e+3)
     #ax2.set_xlim(None, 1.5e+3)
 
     #ax.set_ylim(1e-6, 1e-1)
-    ax.set_ylim(.5e-5, 2)
+    #ax.set_ylim(.5e-5, 1)
+    #ax2.set_ylim(-.5e-5, .5e-5)
+    ax.set_ylim(-5.30102999566, 0)
     ax2.set_ylim(-.5e-5, .5e-5)
 
     # hide the spines between ax and ax2
